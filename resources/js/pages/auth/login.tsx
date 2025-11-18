@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
+import { useTranslation } from '@/hooks/useTranslation';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
@@ -22,12 +23,14 @@ export default function Login({
     canResetPassword,
     canRegister,
 }: LoginProps) {
+    const { trans } = useTranslation();
+
     return (
         <AuthLayout
-            title="Connexion à votre compte"
+            title={trans.auth('login')}
             description="Entrez votre email et mot de passe pour vous connecter"
         >
-            <Head title="Connexion" />
+            <Head title={trans.auth('login')} />
 
             <Form
                 action={store.url()}
@@ -39,7 +42,7 @@ export default function Login({
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Adresse email</Label>
+                                <Label htmlFor="email">{trans.auth('email')}</Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -55,14 +58,14 @@ export default function Login({
 
                             <div className="grid gap-2">
                                 <div className="flex items-center">
-                                    <Label htmlFor="password">Mot de passe</Label>
+                                    <Label htmlFor="password">{trans.auth('password')}</Label>
                                     {canResetPassword && (
                                         <TextLink
                                             href={request()}
                                             className="ml-auto text-sm"
                                             tabIndex={5}
                                         >
-                                            Mot de passe oublié ?
+                                            {trans.auth('forgot_password')}
                                         </TextLink>
                                     )}
                                 </div>
@@ -73,7 +76,7 @@ export default function Login({
                                     required
                                     tabIndex={2}
                                     autoComplete="current-password"
-                                    placeholder="Mot de passe"
+                                    placeholder={trans.auth('password')}
                                 />
                                 <InputError message={errors.password} />
                             </div>
@@ -84,7 +87,7 @@ export default function Login({
                                     name="remember"
                                     tabIndex={3}
                                 />
-                                <Label htmlFor="remember">Se souvenir de moi</Label>
+                                <Label htmlFor="remember">{trans.auth('remember_me')}</Label>
                             </div>
 
                             <Button
@@ -95,7 +98,7 @@ export default function Login({
                                 data-test="login-button"
                             >
                                 {processing && <Spinner />}
-                                Se connecter
+                                {trans.auth('login')}
                             </Button>
                         </div>
 
@@ -103,7 +106,7 @@ export default function Login({
                             <div className="text-center text-sm text-muted-foreground">
                                 Vous n'avez pas de compte ?{' '}
                                 <TextLink href={register()} tabIndex={5}>
-                                    S'inscrire
+                                    {trans.auth('register')}
                                 </TextLink>
                             </div>
                         )}

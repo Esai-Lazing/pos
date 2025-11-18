@@ -10,14 +10,14 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { aide, dashboard } from '@/routes';
+import { dashboard } from '@/routes';
 import * as venteRoutes from '@/routes/vente';
 import * as stockRoutes from '@/routes/stock';
-import * as rapportRoutes from '@/routes/rapport';
+import * as rapportRoutes from '@/routes/rapports';
 import * as printerRoutes from '@/routes/printer';
 import * as userRoutes from '@/routes/user';
 import * as restaurantRoutes from '@/routes/restaurant';
-import * as serveurRoutes from '@/routes/serveur';
+// import * as serveurRoutes from '@/routes/serveur';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { HelpCircle, Info, History, LayoutGrid, Package, ShoppingCart, BarChart3, Printer as PrinterIcon, Users, Building2, UserPlus, Palette } from 'lucide-react';
@@ -29,8 +29,16 @@ const allNavItems: NavItem[] = [
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
-        roles: ['admin', 'caisse', 'stock'], // Tous les rôles
+        roles: ['super-admin', 'admin', 'caisse', 'stock'], // Tous les rôles incluant super-admin
     },
+    // Section Super Admin
+    {
+        title: 'Restaurants',
+        href: restaurantRoutes.index(),
+        icon: Building2,
+        roles: ['super-admin'], // Super-admin uniquement
+    },
+    // Section Admin / Caisse / Stock
     {
         title: 'Vente',
         href: venteRoutes.create(),
@@ -68,18 +76,6 @@ const allNavItems: NavItem[] = [
         roles: ['admin'], // Admin uniquement
     },
     {
-        title: 'Restaurants',
-        href: restaurantRoutes.index(),
-        icon: Building2,
-        roles: ['super-admin'], // Super-admin uniquement
-    },
-    {
-        title: 'Serveurs',
-        href: serveurRoutes.index(),
-        icon: UserPlus,
-        roles: ['admin'], // Admin uniquement
-    },
-    {
         title: 'Personnalisation',
         href: '/restaurant/customization/edit',
         icon: Palette,
@@ -90,11 +86,11 @@ const allNavItems: NavItem[] = [
 const footerNavItems: NavItem[] = [
     {
         title: 'Aide & Support',
-        href: aide(),
+        href: '#',
         icon: HelpCircle,
     },
     {
-        title: 'À propos de JUVISY',
+        title: 'À propos de Pay way',
         href: '#',
         icon: Info,
     },
@@ -103,6 +99,7 @@ const footerNavItems: NavItem[] = [
 export function AppSidebar() {
     const { auth, restaurant } = usePage<SharedData>().props;
     const userRole = auth.user?.role || 'caisse'; // Par défaut caisse si non défini
+    const isSuperAdmin = userRole === 'super-admin';
 
     // Filtrer les items selon le rôle de l'utilisateur
     const mainNavItems = useMemo(() => {
@@ -112,9 +109,30 @@ export function AppSidebar() {
         });
     }, [userRole]);
 
+    // Séparer les items pour le super-admin (gestion) et les autres (opérations)
+    const superAdminItems = useMemo(() => {
+        if (!isSuperAdmin) return [];
+        return mainNavItems.filter((item) => 
+            item.roles?.includes('super-admin') && item.title !== 'Dashboard'
+        );
+    }, [mainNavItems, isSuperAdmin]);
+
+    const regularItems = useMemo(() => {
+        if (isSuperAdmin) {
+            // Pour le super-admin, ne montrer que le Dashboard
+            return mainNavItems.filter((item) => item.title === 'Dashboard');
+        }
+        return mainNavItems;
+    }, [mainNavItems, isSuperAdmin]);
+
     // Déterminer le nom et le logo à afficher
-    const restaurantName = restaurant?.customization?.nom || restaurant?.nom || 'JUVISY';
-    const restaurantLogo = restaurant?.customization?.logo || null;
+    // Pour le super-admin, afficher "Pay way" au lieu du nom du restaurant
+    const restaurantName = isSuperAdmin 
+        ? 'Pay way' 
+        : (restaurant?.customization?.nom || restaurant?.nom || 'Pay way');
+    const restaurantLogo = isSuperAdmin 
+        ? null 
+        : (restaurant?.customization?.logo || null);
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -149,7 +167,10 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                {isSuperAdmin && superAdminItems.length > 0 && (
+                    <NavMain items={superAdminItems} label="Gestion" />
+                )}
+                <NavMain items={regularItems} label={isSuperAdmin ? 'Vue d\'ensemble' : 'Platform'} />
             </SidebarContent>
 
             <SidebarFooter>

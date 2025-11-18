@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         // Créer un super-admin
         $superAdmin = User::firstOrCreate(
-            ['email' => 'superadmin@juvisy.com'],
+            ['email' => 'superadmin@payway.com'],
             [
                 'name' => 'Super Administrateur',
                 'password' => Hash::make('password'),
@@ -27,12 +27,12 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Créer un restaurant par défaut (JUVISY)
+        // Créer un restaurant par défaut (Pay way)
         $restaurant = Restaurant::firstOrCreate(
-            ['email' => 'contact@juvisy.com'],
+            ['email' => 'contact@payway.com'],
             [
-                'nom' => 'JUVISY',
-                'slug' => 'juvisy',
+                'nom' => 'Pay way',
+                'slug' => 'payway',
                 'telephone' => null,
                 'est_actif' => true,
                 'date_creation' => now(),
@@ -53,9 +53,9 @@ class DatabaseSeeder extends Seeder
 
         // Créer un utilisateur admin pour le restaurant
         $admin = User::firstOrCreate(
-            ['email' => 'admin@juvisy.com'],
+            ['email' => 'admin@payway.com'],
             [
-                'name' => 'Administrateur JUVISY',
+                'name' => 'Administrateur Pay way',
                 'password' => Hash::make('password'),
                 'role' => 'admin',
                 'restaurant_id' => $restaurant->id,
@@ -66,9 +66,9 @@ class DatabaseSeeder extends Seeder
 
         // Créer un utilisateur caisse pour le restaurant
         User::firstOrCreate(
-            ['email' => 'caisse@juvisy.com'],
+            ['email' => 'caisse@payway.com'],
             [
-                'name' => 'Caissier JUVISY',
+                'name' => 'Caissier Pay way',
                 'password' => Hash::make('password'),
                 'role' => 'caisse',
                 'restaurant_id' => $restaurant->id,
@@ -79,9 +79,9 @@ class DatabaseSeeder extends Seeder
 
         // Créer un utilisateur stock pour le restaurant
         User::firstOrCreate(
-            ['email' => 'stock@juvisy.com'],
+            ['email' => 'stock@payway.com'],
             [
-                'name' => 'Gestionnaire Stock JUVISY',
+                'name' => 'Gestionnaire Stock Pay way',
                 'password' => Hash::make('password'),
                 'role' => 'stock',
                 'restaurant_id' => $restaurant->id,

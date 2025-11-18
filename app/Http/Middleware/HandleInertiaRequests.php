@@ -38,6 +38,9 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        // S'assurer que la locale est définie avant de charger les traductions
+        app()->setLocale(config('app.locale', 'fr'));
+
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
         $user = $request->user();
@@ -47,11 +50,11 @@ class HandleInertiaRequests extends Middleware
 
         // Ajouter les notifications d'abonnement pour les super-admins
         if ($user && $user->isSuperAdmin()) {
-            $notificationService = new AbonnementNotificationService();
+            $notificationService = new AbonnementNotificationService;
             $notifications = $notificationService->getExpiringSubscriptions(7);
         } elseif ($user && $user->restaurant_id) {
             // Pour les admins de restaurant, afficher les notifications de leur restaurant
-            $notificationService = new AbonnementNotificationService();
+            $notificationService = new AbonnementNotificationService;
             $notifications = $notificationService->getNotificationsForRestaurant($user->restaurant_id, 7);
 
             // Charger le restaurant et sa personnalisation
@@ -66,6 +69,15 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
+            'translations' => [
+                'common' => trans('common'),
+                'stock' => trans('stock'),
+                'sales' => trans('sales'),
+                'reports' => trans('reports'),
+                'printer' => trans('printer'),
+                'auth' => trans('auth'),
+                'validation' => trans('validation'),
+            ],
             'auth' => [
                 'user' => $user,
             ],

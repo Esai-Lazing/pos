@@ -20,7 +20,7 @@ class StockController extends Controller
         $query = Produit::query()->withCount('stockMovements');
 
         // Filtrer par restaurant_id (sauf pour super-admin)
-        if (!$user->isSuperAdmin() && $user->restaurant_id) {
+        if (! $user->isSuperAdmin() && $user->restaurant_id) {
             $query->where('restaurant_id', $user->restaurant_id);
         }
 
@@ -46,6 +46,7 @@ class StockController extends Controller
         $produits->getCollection()->transform(function ($produit) {
             $produit->stock_total_bouteilles = $produit->stock_total_bouteilles;
             $produit->stock_bas = $produit->stock_bas;
+
             return $produit;
         });
 
@@ -55,9 +56,19 @@ class StockController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('Stock/Create');
+        $user = $request->user();
+        $restaurant = $user->restaurant;
+
+        // Obtenir les catégories suggérées selon le type d'établissement
+        $categoriesSuggerees = $restaurant
+            ? \App\Services\RestaurantService::getSuggestedProductCategories($restaurant)
+            : ['Produits'];
+
+        return Inertia::render('Stock/Create', [
+            'categoriesSuggerees' => $categoriesSuggerees,
+        ]);
     }
 
     public function store(StoreProduitRequest $request): RedirectResponse
@@ -71,7 +82,7 @@ class StockController extends Controller
         }
 
         // Ajouter restaurant_id si l'utilisateur n'est pas super-admin
-        if (!$user->isSuperAdmin() && $user->restaurant_id) {
+        if (! $user->isSuperAdmin() && $user->restaurant_id) {
             $data['restaurant_id'] = $user->restaurant_id;
         }
 
@@ -94,9 +105,9 @@ class StockController extends Controller
     public function show(Request $request, Produit $produit): Response
     {
         $user = $request->user();
-        
+
         // Vérifier que l'utilisateur a accès à ce produit
-        if (!$user->isSuperAdmin() && $produit->restaurant_id !== $user->restaurant_id) {
+        if (! $user->isSuperAdmin() && $produit->restaurant_id !== $user->restaurant_id) {
             abort(403, 'Accès refusé à ce produit.');
         }
 
@@ -110,9 +121,9 @@ class StockController extends Controller
     public function edit(Request $request, Produit $produit): Response
     {
         $user = $request->user();
-        
+
         // Vérifier que l'utilisateur a accès à ce produit
-        if (!$user->isSuperAdmin() && $produit->restaurant_id !== $user->restaurant_id) {
+        if (! $user->isSuperAdmin() && $produit->restaurant_id !== $user->restaurant_id) {
             abort(403, 'Accès refusé à ce produit.');
         }
 
@@ -124,9 +135,9 @@ class StockController extends Controller
     public function update(UpdateProduitRequest $request, Produit $produit): RedirectResponse
     {
         $user = $request->user();
-        
+
         // Vérifier que l'utilisateur a accès à ce produit
-        if (!$user->isSuperAdmin() && $produit->restaurant_id !== $user->restaurant_id) {
+        if (! $user->isSuperAdmin() && $produit->restaurant_id !== $user->restaurant_id) {
             abort(403, 'Accès refusé à ce produit.');
         }
 
@@ -155,9 +166,9 @@ class StockController extends Controller
     public function destroy(Request $request, Produit $produit): RedirectResponse
     {
         $user = $request->user();
-        
+
         // Vérifier que l'utilisateur a accès à ce produit
-        if (!$user->isSuperAdmin() && $produit->restaurant_id !== $user->restaurant_id) {
+        if (! $user->isSuperAdmin() && $produit->restaurant_id !== $user->restaurant_id) {
             abort(403, 'Accès refusé à ce produit.');
         }
 
@@ -171,9 +182,9 @@ class StockController extends Controller
     {
         $user = $request->user();
         $produit = Produit::findOrFail($request->produit_id);
-        
+
         // Vérifier que l'utilisateur a accès à ce produit
-        if (!$user->isSuperAdmin() && $produit->restaurant_id !== $user->restaurant_id) {
+        if (! $user->isSuperAdmin() && $produit->restaurant_id !== $user->restaurant_id) {
             abort(403, 'Accès refusé à ce produit.');
         }
 
@@ -185,7 +196,7 @@ class StockController extends Controller
         $data['quantite_verres'] = $data['quantite_verres'] ?? 0;
 
         // Ajouter restaurant_id au mouvement
-        if (!$user->isSuperAdmin() && $user->restaurant_id) {
+        if (! $user->isSuperAdmin() && $user->restaurant_id) {
             $data['restaurant_id'] = $user->restaurant_id;
         }
 

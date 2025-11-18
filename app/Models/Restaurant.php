@@ -19,6 +19,8 @@ class Restaurant extends Model
         'slug',
         'email',
         'telephone',
+        'type_etablissement',
+        'categorie',
         'est_actif',
         'date_creation',
     ];
@@ -60,12 +62,13 @@ class Restaurant extends Model
     public static function genererSlugUnique(string $nom, ?int $excludeId = null): string
     {
         $baseSlug = Str::slug($nom);
+
         return static::assurerSlugUnique($baseSlug, $excludeId);
     }
 
     /**
      * Assure qu'un slug est unique en ajoutant un suffixe numérique si nécessaire
-     * 
+     *
      * Important: On vérifie directement dans la base de données pour inclure
      * les enregistrements supprimés, car la contrainte unique s'applique aussi à eux
      */
@@ -149,5 +152,86 @@ class Restaurant extends Model
                     ->orWhere('date_fin', '>=', now());
             })
             ->exists();
+    }
+
+    /**
+     * Vérifier si le restaurant peut accéder à une fonctionnalité
+     */
+    public function canAccessFeature(string $feature): bool
+    {
+        if (! $this->hasActiveSubscription()) {
+            return false;
+        }
+
+        $abonnement = $this->abonnement;
+        if (! $abonnement) {
+            return false;
+        }
+
+        return $abonnement->canAccess($feature);
+    }
+
+    /**
+     * Obtenir les limitations actuelles
+     */
+    public function getLimitations(): array
+    {
+        if (! $this->hasActiveSubscription()) {
+            return [];
+        }
+
+        $abonnement = $this->abonnement;
+
+        return $abonnement ? $abonnement->getLimitations() : [];
+    }
+
+    /**
+     * Vérifier si le restaurant a atteint la limite d'utilisateurs
+     */
+    public function hasReachedUserLimit(): bool
+    {
+        $limitations = $this->getLimitations();
+        $maxUsers = $limitations['max_users'] ?? null;
+
+        if ($maxUsers === null) {
+            return false; // Illimité
+        }
+
+        return $this->users()->count() >= $maxUsers;
+    }
+
+    /**
+     * Vérifier si le restaurant a atteint la limite de produits
+     */
+    public function hasReachedProductLimit(): bool
+    {
+        $limitations = $this->getLimitations();
+        $maxProduits = $limitations['max_produits'] ?? null;
+
+        if ($maxProduits === null) {
+            return false; // Illimité
+        }
+
+        return $this->produits()->count() >= $maxProduits;
+    }
+
+    /**
+     * Vérifier si le restaurant a atteint la limite de ventes mensuelles
+     */
+    public function hasReachedMonthlySalesLimit(): bool
+    {
+        $limitations = $this->getLimitations();
+        $maxVentes = $limitations['max_ventes_mois'] ?? null;
+
+        if ($maxVentes === null) {
+            return false; // Illimité
+        }
+
+        $ventesMois = $this->ventes()
+            ->whereYear('created_at', now()->year)
+            ->whereMonth('created_at', now()->month)
+            ->count();
+
+        return $ventesMois >= $maxVentes;
     }
 }

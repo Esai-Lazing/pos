@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import * as rapport from '@/routes/rapport';
+import * as rapport from '@/routes/rapports';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { BarChart3, DollarSign, Package, TrendingUp, TrendingDown } from 'lucide-react';

@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'title' => 'Configuration de l\'imprimante',
+    'printer_settings' => 'Paramètres d\'imprimante',
+    'restaurant_name' => 'Nom du restaurant',
+    'restaurant_address' => 'Adresse',
+    'restaurant_phone' => 'Téléphone',
+    'printer_type' => 'Type d\'imprimante',
+    'printer_type_bluetooth' => 'Bluetooth',
+    'printer_type_usb' => 'USB',
+    'printer_type_wifi' => 'WiFi',
+    'printer_model' => 'Modèle d\'imprimante',
+    'mac_address' => 'Adresse MAC',
+    'ip_address' => 'Adresse IP',
+    'port' => 'Port',
+    'paper_width' => 'Largeur du papier (mm)',
+    'receipt_message' => 'Message sur la facture',
+    'print_receipt' => 'Imprimer la facture',
+    'printing' => 'Impression en cours...',
+    'print_success' => 'Facture imprimée avec succès',
+    'print_error' => 'Erreur lors de l\'impression',
+    'settings_updated' => 'Paramètres d\'imprimante mis à jour avec succès',
+    'bluetooth_not_available' => 'Bluetooth non disponible dans ce navigateur',
+    'wifi_connection_required' => 'Adresse IP et port requis pour l\'impression WiFi',
+    'usb_not_available' => 'WebUSB non disponible dans ce navigateur',
+];

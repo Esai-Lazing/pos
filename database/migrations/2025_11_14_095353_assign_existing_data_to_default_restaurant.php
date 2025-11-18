@@ -12,12 +12,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Trouver ou créer le restaurant par défaut (JUVISY)
+        // Trouver ou créer le restaurant par défaut (Pay way)
         $restaurant = Restaurant::firstOrCreate(
-            ['email' => 'contact@juvisy.com'],
+            ['email' => 'contact@payway.com'],
             [
-                'nom' => 'JUVISY',
-                'slug' => 'juvisy',
+                'nom' => 'Pay way',
+                'slug' => 'payway',
                 'est_actif' => true,
                 'date_creation' => now(),
             ]

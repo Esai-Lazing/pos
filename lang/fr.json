@@ -1,0 +1,14 @@
+{
+    "The :attribute field is required.": "Le champ :attribute est obligatoire.",
+    "The :attribute must be a string.": "Le champ :attribute doit être une chaîne de caractères.",
+    "The :attribute must be a number.": "Le champ :attribute doit être un nombre.",
+    "The :attribute must be an integer.": "Le champ :attribute doit être un entier.",
+    "The :attribute must be at least :min.": "Le champ :attribute doit être au moins :min.",
+    "The :attribute may not be greater than :max.": "Le champ :attribute ne peut pas être supérieur à :max.",
+    "The :attribute has already been taken.": "Le :attribute est déjà utilisé.",
+    "The selected :attribute is invalid.": "Le :attribute sélectionné n'est pas valide.",
+    "The :attribute must be one of the following: :values.": "Le champ :attribute doit être l'un des suivants : :values.",
+    "The :attribute must be a valid email address.": "Le champ :attribute doit être une adresse email valide.",
+    "The :attribute confirmation does not match.": "La confirmation du champ :attribute ne correspond pas.",
+    "These credentials do not match our records.": "Ces identifiants ne correspondent pas à nos enregistrements."
+}

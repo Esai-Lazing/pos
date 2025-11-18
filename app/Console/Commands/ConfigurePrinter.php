@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 class ConfigurePrinter extends Command
 {
     protected $signature = 'printer:configure
-                            {--nom=JUVISY : Nom de l\'établissement}
+                            {--nom=Pay way : Nom de l\'établissement}
                             {--adresse= : Adresse complète}
                             {--message= : Message personnalisé}
                             {--telephone= : Numéro de téléphone}';
@@ -17,9 +17,9 @@ class ConfigurePrinter extends Command
 
     public function handle(): int
     {
-        $nom = $this->option('nom') ?: 'JUVISY';
+        $nom = $this->option('nom') ?: 'Pay way';
         $adresse = $this->option('adresse') ?: '217 Avenue Congo Motors, Quartier Gambella I, Commune Lubumbashi';
-        $message = $this->option('message') ?: 'Merci de votre visite chez Juvisy !';
+        $message = $this->option('message') ?: 'Merci de votre visite chez Pay way !';
         $telephone = $this->option('telephone');
 
         $printer = Printer::updateOrCreate(

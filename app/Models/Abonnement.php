@@ -14,11 +14,15 @@ class Abonnement extends Model
         'restaurant_id',
         'plan',
         'montant_mensuel',
+        'mode_paiement',
+        'numero_transaction',
+        'date_paiement',
         'date_debut',
         'date_fin',
         'est_actif',
         'statut',
         'notes',
+        'limitations',
     ];
 
     protected function casts(): array
@@ -27,8 +31,35 @@ class Abonnement extends Model
             'montant_mensuel' => 'decimal:2',
             'date_debut' => 'date',
             'date_fin' => 'date',
+            'date_paiement' => 'datetime',
             'est_actif' => 'boolean',
+            'limitations' => 'array',
         ];
+    }
+
+    /**
+     * Obtenir les limitations du plan
+     */
+    public function getLimitations(): array
+    {
+        if ($this->limitations) {
+            return $this->limitations;
+        }
+
+        // Si pas de limitations stockées, récupérer depuis les plans prédéfinis
+        $plan = \App\Models\SubscriptionPlan::getPlanBySlug($this->plan);
+
+        return $plan['limitations'] ?? [];
+    }
+
+    /**
+     * Vérifier si une fonctionnalité est disponible
+     */
+    public function canAccess(string $feature): bool
+    {
+        $limitations = $this->getLimitations();
+
+        return $limitations[$feature] ?? false;
     }
 
     public function restaurant(): BelongsTo

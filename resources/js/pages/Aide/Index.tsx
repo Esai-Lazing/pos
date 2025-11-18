@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { aide, dashboard } from '@/routes';
+import { dashboard } from '@/routes';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
 import {
@@ -20,7 +20,7 @@ import {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Aide & Support',
-        href: aide().url,
+        href: '#',
     },
 ];
 
@@ -37,10 +37,10 @@ export default function AideIndex() {
     // Sections communes à tous les rôles
     const sectionsCommunes: Section[] = [
         {
-            title: 'Bienvenue dans JUVISY POS',
+            title: 'Bienvenue dans Pay way',
             icon: LayoutGrid,
             items: [
-                'JUVISY POS est un système de point de vente (POS) conçu spécialement pour les restaurants et bars congolais.',
+                'Pay way est un système de point de vente (POS) conçu spécialement pour les restaurants et bars congolais.',
                 'L\'application fonctionne en mode hors ligne (offline-first) pour garantir une utilisation continue même sans connexion internet.',
                 'Toutes les données sont synchronisées automatiquement dès que la connexion est rétablie.',
             ],
@@ -259,7 +259,7 @@ export default function AideIndex() {
                     <div>
                         <h1 className="text-3xl font-bold">Comment ça marche</h1>
                         <p className="mt-2 text-muted-foreground">
-                            Guide d'utilisation de JUVISY POS pour le rôle :{' '}
+                            Guide d'utilisation de Pay way pour le rôle :{' '}
                             <span className="font-semibold capitalize">
                                 {userRole === 'admin'
                                     ? 'Administrateur'

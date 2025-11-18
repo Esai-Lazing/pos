@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Produit;
+use App\Models\Restaurant;
 use App\Models\StockMovement;
+use App\Models\User;
 use App\Models\Vente;
 use App\Models\VenteItem;
 use Illuminate\Http\Request;
@@ -25,9 +27,15 @@ class DashboardController extends Controller
         // Données communes à tous les rôles
         $data['role'] = $role;
 
+        // Si super-admin, définir is_super_admin
+        if ($user->isSuperAdmin()) {
+            $data['is_super_admin'] = true;
+            $data['role'] = 'super-admin';
+        }
+
         // Filtrer par restaurant_id (sauf pour super-admin)
         $restaurantFilter = function ($query) use ($user) {
-            if (!$user->isSuperAdmin() && $user->restaurant_id) {
+            if (! $user->isSuperAdmin() && $user->restaurant_id) {
                 $query->where('restaurant_id', $user->restaurant_id);
             }
         };
@@ -62,7 +70,7 @@ class DashboardController extends Controller
             $produitsQuery = Produit::query();
             $restaurantFilter($produitsQuery);
             $totalProduits = $produitsQuery->count();
-            
+
             $produitsStockBasQuery = Produit::whereRaw('(quantite_casiers * bouteilles_par_casier + quantite_bouteilles) <= (stock_minimum * bouteilles_par_casier)')
                 ->where('est_actif', true);
             $restaurantFilter($produitsStockBasQuery);
@@ -70,7 +78,7 @@ class DashboardController extends Controller
 
             // Produits les plus vendus aujourd'hui
             $produitsVendusQuery = VenteItem::with('produit')
-                ->whereHas('vente', function ($q) use ($dateDebut, $dateFin, $user, $restaurantFilter) {
+                ->whereHas('vente', function ($q) use ($dateDebut, $dateFin, $restaurantFilter) {
                     $q->whereBetween('created_at', [$dateDebut, $dateFin]);
                     $restaurantFilter($q);
                 });
@@ -114,6 +122,45 @@ class DashboardController extends Controller
             ];
             $data['produits_vendus'] = $produitsVendus;
             $data['dernieres_ventes'] = $dernieresVentes;
+
+            // Informations d'abonnement pour les admins
+            if ($user->restaurant) {
+                $restaurant = $user->restaurant;
+                $abonnement = $restaurant->abonnement;
+                $limitations = $restaurant->getLimitations();
+
+                // Calculer les utilisations actuelles
+                $nbUsers = $restaurant->users()->count();
+                $nbProduits = $restaurant->produits()->count();
+                $nbVentesMois = $restaurant->ventes()
+                    ->whereYear('created_at', now()->year)
+                    ->whereMonth('created_at', now()->month)
+                    ->count();
+
+                $data['abonnement'] = [
+                    'plan' => $abonnement?->plan ?? null,
+                    'date_fin' => $abonnement?->date_fin?->format('Y-m-d') ?? null,
+                    'est_actif' => $restaurant->hasActiveSubscription(),
+                    'limitations' => $limitations,
+                    'utilisation' => [
+                        'users' => [
+                            'actuel' => $nbUsers,
+                            'max' => $limitations['max_users'] ?? null,
+                            'pourcentage' => $limitations['max_users'] ? round(($nbUsers / $limitations['max_users']) * 100) : 0,
+                        ],
+                        'produits' => [
+                            'actuel' => $nbProduits,
+                            'max' => $limitations['max_produits'] ?? null,
+                            'pourcentage' => $limitations['max_produits'] ? round(($nbProduits / $limitations['max_produits']) * 100) : 0,
+                        ],
+                        'ventes_mois' => [
+                            'actuel' => $nbVentesMois,
+                            'max' => $limitations['max_ventes_mois'] ?? null,
+                            'pourcentage' => $limitations['max_ventes_mois'] ? round(($nbVentesMois / $limitations['max_ventes_mois']) * 100) : 0,
+                        ],
+                    ],
+                ];
+            }
         }
 
         // Dashboard Caisse : Focus sur les ventes
@@ -173,6 +220,51 @@ class DashboardController extends Controller
             ];
             $data['produits_stock_bas'] = $produitsStockBas;
             $data['mouvements_recents'] = $mouvementsRecents;
+        }
+
+        // Dashboard Super Admin : Vue globale avec gestion des restaurants
+        if ($user->isSuperAdmin()) {
+            // Statistiques globales des restaurants
+            $totalRestaurants = Restaurant::count();
+            $restaurantsActifs = Restaurant::where('est_actif', true)->count();
+            $restaurantsInactifs = Restaurant::where('est_actif', false)->count();
+            $restaurantsSupprimes = Restaurant::onlyTrashed()->count();
+
+            // Statistiques globales des ventes
+            $ventesAujourdhui = Vente::whereBetween('created_at', [$dateDebut, $dateFin])->get();
+            $totalVentesFc = $ventesAujourdhui->sum('montant_total_fc');
+            $totalVentesUsd = $ventesAujourdhui->sum('montant_total_usd');
+            $nombreVentes = $ventesAujourdhui->count();
+
+            // Statistiques globales des utilisateurs
+            $totalUsers = User::count();
+            $usersActifs = User::where('is_active', true)->count();
+
+            // Derniers restaurants créés
+            $derniersRestaurants = Restaurant::with('abonnement')
+                ->latest()
+                ->limit(5)
+                ->get();
+
+            $data['statistiques'] = [
+                'restaurants' => [
+                    'total' => $totalRestaurants,
+                    'actifs' => $restaurantsActifs,
+                    'inactifs' => $restaurantsInactifs,
+                    'supprimes' => $restaurantsSupprimes,
+                ],
+                'ventes_aujourdhui' => [
+                    'total_fc' => $totalVentesFc,
+                    'total_usd' => $totalVentesUsd,
+                    'nombre' => $nombreVentes,
+                ],
+                'utilisateurs' => [
+                    'total' => $totalUsers,
+                    'actifs' => $usersActifs,
+                ],
+            ];
+            $data['derniers_restaurants'] = $derniersRestaurants;
+            $data['is_super_admin'] = true;
         }
 
         return Inertia::render('dashboard', $data);

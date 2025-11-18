@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Produit;
 use App\Models\Vente;
 use App\Models\VenteItem;
 use Illuminate\Http\Request;
@@ -15,6 +14,15 @@ class RapportController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $restaurant = $user->restaurant;
+
+        // Vérifier l'accès aux rapports selon l'abonnement
+        if ($restaurant && ! $restaurant->canAccessFeature('rapports')) {
+            return redirect()
+                ->route('dashboard')
+                ->with('error', 'L\'accès aux rapports n\'est pas disponible avec votre plan d\'abonnement actuel.');
+        }
+
         $periode = $request->get('periode', 'jour');
         $dateDebut = $request->get('date_debut', now()->startOfDay());
         $dateFin = $request->get('date_fin', now()->endOfDay());
@@ -34,8 +42,8 @@ class RapportController extends Controller
         // Filtrer par restaurant_id (sauf pour super-admin)
         $ventesQuery = Vente::with(['items.produit', 'user'])
             ->whereBetween('created_at', [$dateDebut, $dateFin]);
-        
-        if (!$user->isSuperAdmin() && $user->restaurant_id) {
+
+        if (! $user->isSuperAdmin() && $user->restaurant_id) {
             $ventesQuery->where('restaurant_id', $user->restaurant_id);
         }
 
@@ -52,11 +60,11 @@ class RapportController extends Controller
         $produitsVendusQuery = VenteItem::with('produit')
             ->whereHas('vente', function ($q) use ($dateDebut, $dateFin, $user) {
                 $q->whereBetween('created_at', [$dateDebut, $dateFin]);
-                if (!$user->isSuperAdmin() && $user->restaurant_id) {
+                if (! $user->isSuperAdmin() && $user->restaurant_id) {
                     $q->where('restaurant_id', $user->restaurant_id);
                 }
             });
-        
+
         $produitsVendus = $produitsVendusQuery
             ->selectRaw('produit_id, sum(quantite) as total_quantite, sum(sous_total_fc) as total_fc, sum(sous_total_usd) as total_usd')
             ->groupBy('produit_id')
@@ -74,15 +82,15 @@ class RapportController extends Controller
 
         // Ventes par jour/heure (pour graphique)
         $driver = DB::getDriverName();
-        $dateFunction = $driver === 'sqlite' ? "date(created_at)" : "DATE(created_at)";
-        
+        $dateFunction = $driver === 'sqlite' ? 'date(created_at)' : 'DATE(created_at)';
+
         $ventesParJourQuery = Vente::selectRaw("{$dateFunction} as date, sum(montant_total_fc) as total_fc, sum(montant_total_usd) as total_usd, count(*) as nombre")
             ->whereBetween('created_at', [$dateDebut, $dateFin]);
-        
-        if (!$user->isSuperAdmin() && $user->restaurant_id) {
+
+        if (! $user->isSuperAdmin() && $user->restaurant_id) {
             $ventesParJourQuery->where('restaurant_id', $user->restaurant_id);
         }
-        
+
         $ventesParJour = $ventesParJourQuery
             ->groupBy('date')
             ->orderBy('date')
@@ -92,17 +100,17 @@ class RapportController extends Controller
         $ventesParHeure = [];
         if ($periode === 'jour') {
             $driver = DB::getDriverName();
-            $hourFunction = $driver === 'sqlite' 
-                ? "CAST(strftime('%H', created_at) AS INTEGER)" 
-                : "HOUR(created_at)";
-            
+            $hourFunction = $driver === 'sqlite'
+                ? "CAST(strftime('%H', created_at) AS INTEGER)"
+                : 'HOUR(created_at)';
+
             $ventesParHeureQuery = Vente::selectRaw("{$hourFunction} as heure, sum(montant_total_fc) as total_fc, count(*) as nombre")
                 ->whereBetween('created_at', [$dateDebut, $dateFin]);
-            
-            if (!$user->isSuperAdmin() && $user->restaurant_id) {
+
+            if (! $user->isSuperAdmin() && $user->restaurant_id) {
                 $ventesParHeureQuery->where('restaurant_id', $user->restaurant_id);
             }
-            
+
             $ventesParHeure = $ventesParHeureQuery
                 ->groupBy('heure')
                 ->orderBy('heure')
@@ -119,7 +127,7 @@ class RapportController extends Controller
         // Comparaison avec période précédente
         $periodePrecedenteDebut = null;
         $periodePrecedenteFin = null;
-        
+
         if ($periode === 'jour') {
             $periodePrecedenteDebut = now()->subDay()->startOfDay();
             $periodePrecedenteFin = now()->subDay()->endOfDay();
@@ -132,11 +140,11 @@ class RapportController extends Controller
         }
 
         $ventesPrecedentesQuery = Vente::whereBetween('created_at', [$periodePrecedenteDebut, $periodePrecedenteFin]);
-        if (!$user->isSuperAdmin() && $user->restaurant_id) {
+        if (! $user->isSuperAdmin() && $user->restaurant_id) {
             $ventesPrecedentesQuery->where('restaurant_id', $user->restaurant_id);
         }
         $totalVentesPrecedentesFc = $ventesPrecedentesQuery->sum('montant_total_fc') ?? 0;
-        
+
         // Calculer la variation en pourcentage
         if ($totalVentesPrecedentesFc > 0) {
             $variation = (($totalVentesFc - $totalVentesPrecedentesFc) / $totalVentesPrecedentesFc) * 100;
@@ -151,11 +159,11 @@ class RapportController extends Controller
         // Ventes par mode de paiement
         $ventesParModePaiementQuery = Vente::selectRaw('mode_paiement, sum(montant_total_fc) as total_fc, count(*) as nombre')
             ->whereBetween('created_at', [$dateDebut, $dateFin]);
-        
-        if (!$user->isSuperAdmin() && $user->restaurant_id) {
+
+        if (! $user->isSuperAdmin() && $user->restaurant_id) {
             $ventesParModePaiementQuery->where('restaurant_id', $user->restaurant_id);
         }
-        
+
         $ventesParModePaiement = $ventesParModePaiementQuery
             ->groupBy('mode_paiement')
             ->get()

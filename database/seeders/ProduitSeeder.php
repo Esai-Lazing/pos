@@ -10,15 +10,15 @@ class ProduitSeeder extends Seeder
 {
     public function run(): void
     {
-        // Récupérer le restaurant par défaut (JUVISY)
-        $restaurant = Restaurant::where('slug', 'juvisy')->first();
-        
-        if (!$restaurant) {
+        // Récupérer le restaurant par défaut (Pay way)
+        $restaurant = Restaurant::where('slug', 'payway')->first();
+
+        if (! $restaurant) {
             // Si le restaurant n'existe pas, créer un restaurant par défaut
             $restaurant = Restaurant::create([
-                'nom' => 'JUVISY',
-                'slug' => 'juvisy',
-                'email' => 'contact@juvisy.com',
+                'nom' => 'Pay way',
+                'slug' => 'payway',
+                'email' => 'contact@payway.com',
                 'est_actif' => true,
                 'date_creation' => now(),
             ]);

@@ -1,135 +1,92 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PrinterController;
+use App\Http\Controllers\RapportController;
+use App\Http\Controllers\RestaurantController;
+use App\Http\Controllers\StockController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\VenteController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Laravel\Fortify\Features;
 
 Route::get('/', function () {
-    return Inertia::render('welcome', [
-        'canRegister' => Features::enabled(Features::registration()),
-    ]);
+    return Inertia::render('welcome');
 })->name('home');
 
-Route::middleware(['auth', 'verified', 'restaurant.access'])->group(function () {
-    Route::get('dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
-    
-    // Page d'aide
-    Route::get('aide', function () {
-        return Inertia::render('Aide/Index');
-    })->name('aide');
+// Route de test pour les traductions
+Route::get('/test-translations', function () {
+    return Inertia::render('TranslationTest');
+})->name('test.translations');
 
-    // Routes Stock (Admin et Stock)
-    Route::middleware(['role:admin,stock'])->prefix('stock')->name('stock.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\StockController::class, 'index'])->name('index');
-        Route::get('/create', [\App\Http\Controllers\StockController::class, 'create'])->name('create');
-        Route::post('/', [\App\Http\Controllers\StockController::class, 'store'])->name('store');
-        Route::get('/{produit}', [\App\Http\Controllers\StockController::class, 'show'])->name('show');
-        Route::get('/{produit}/edit', [\App\Http\Controllers\StockController::class, 'edit'])->name('edit');
-        Route::put('/{produit}', [\App\Http\Controllers\StockController::class, 'update'])->name('update');
-        Route::delete('/{produit}', [\App\Http\Controllers\StockController::class, 'destroy'])->name('destroy');
-        Route::post('/mouvement', [\App\Http\Controllers\StockController::class, 'mouvement'])->name('mouvement');
+Route::middleware(['auth'])->group(function () {
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Stock routes - Admin & Stock role
+    Route::middleware('role:admin,stock')->group(function () {
+        Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
+        Route::get('/stock/create', [StockController::class, 'create'])->name('stock.create');
+        Route::post('/stock', [StockController::class, 'store'])
+            ->middleware('subscription.limit:products')
+            ->name('stock.store');
+        Route::get('/stock/{produit}', [StockController::class, 'show'])->name('stock.show');
+        Route::get('/stock/{produit}/edit', [StockController::class, 'edit'])->name('stock.edit');
+        Route::put('/stock/{produit}', [StockController::class, 'update'])->name('stock.update');
+        Route::post('/stock/add', [StockController::class, 'addStock'])->name('stock.add');
+        Route::post('/stock/remove', [StockController::class, 'removeStock'])->name('stock.remove');
+        Route::get('/stock/{produit}/history', [StockController::class, 'history'])->name('stock.history');
     });
 
-    // Routes Vente (Admin et Caisse)
-    Route::middleware(['role:admin,caisse'])->prefix('vente')->name('vente.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\VenteController::class, 'index'])->name('index');
-        Route::get('/create', [\App\Http\Controllers\VenteController::class, 'create'])->name('create');
-        Route::post('/', [\App\Http\Controllers\VenteController::class, 'store'])->name('store');
-        Route::get('/{vente}', [\App\Http\Controllers\VenteController::class, 'show'])->name('show');
-        Route::get('/{vente}/edit', [\App\Http\Controllers\VenteController::class, 'edit'])->name('edit');
-        Route::put('/{vente}', [\App\Http\Controllers\VenteController::class, 'update'])->name('update');
-        Route::post('/{vente}/imprimer', [\App\Http\Controllers\VenteController::class, 'imprimer'])->name('imprimer');
-        Route::get('/{vente}/print-receipt', [\App\Http\Controllers\VenteController::class, 'printReceipt'])->name('print-receipt');
+    // Vente routes - Admin & Caisse role
+    Route::middleware('role:admin,caisse')->group(function () {
+        Route::get('/vente', [VenteController::class, 'index'])->name('vente.index');
+        Route::get('/vente/create', [VenteController::class, 'create'])->name('vente.create');
+        Route::post('/vente', [VenteController::class, 'store'])
+            ->middleware('subscription.limit:sales')
+            ->name('vente.store');
+        Route::get('/vente/{vente}', [VenteController::class, 'show'])->name('vente.show');
+        Route::get('/vente/{vente}/print', [VenteController::class, 'print'])->name('vente.print');
     });
 
-    // Routes Rapports (Admin uniquement)
-    Route::middleware(['role:admin'])->prefix('rapport')->name('rapport.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\RapportController::class, 'index'])->name('index');
+    // Reports routes - Admin only (vérifie aussi l'abonnement)
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/rapports', [RapportController::class, 'index'])->name('rapports.index');
+        Route::get('/rapports/journalier', [RapportController::class, 'journalier'])->name('rapports.journalier');
+        Route::get('/rapports/hebdomadaire', [RapportController::class, 'hebdomadaire'])->name('rapports.hebdomadaire');
+        Route::get('/rapports/mensuel', [RapportController::class, 'mensuel'])->name('rapports.mensuel');
     });
 
-    // Routes Imprimante (Admin uniquement)
-    Route::middleware(['role:admin'])->prefix('printer')->name('printer.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\PrinterController::class, 'index'])->name('index');
-        Route::get('/create', [\App\Http\Controllers\PrinterController::class, 'create'])->name('create');
-        Route::post('/', [\App\Http\Controllers\PrinterController::class, 'store'])->name('store');
-        Route::get('/{printer}/edit', [\App\Http\Controllers\PrinterController::class, 'edit'])->name('edit');
-        Route::put('/{printer}', [\App\Http\Controllers\PrinterController::class, 'update'])->name('update');
-        Route::delete('/{printer}', [\App\Http\Controllers\PrinterController::class, 'destroy'])->name('destroy');
+    // Printer routes - Admin only
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/printer', [PrinterController::class, 'index'])->name('printer.index');
+        Route::put('/printer', [PrinterController::class, 'update'])->name('printer.update');
+        Route::get('/printer/receipt/{vente}', [PrinterController::class, 'getReceiptData'])->name('printer.receipt');
     });
 
-    // Routes Utilisateurs (Admin uniquement)
-    Route::middleware(['role:admin'])->prefix('user')->name('user.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\UserController::class, 'index'])->name('index');
-        Route::get('/create', [\App\Http\Controllers\UserController::class, 'create'])->name('create');
-        Route::post('/', [\App\Http\Controllers\UserController::class, 'store'])->name('store');
-        Route::get('/{user}', [\App\Http\Controllers\UserController::class, 'show'])->name('show');
-        Route::get('/{user}/edit', [\App\Http\Controllers\UserController::class, 'edit'])->name('edit');
-        Route::put('/{user}', [\App\Http\Controllers\UserController::class, 'update'])->name('update');
-        Route::put('/{user}/password', [\App\Http\Controllers\UserController::class, 'updatePassword'])->name('update-password');
+    // User routes - Admin only
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/user', [UserController::class, 'index'])->name('user.index');
+        Route::get('/user/create', [UserController::class, 'create'])->name('user.create');
+        Route::post('/user', [UserController::class, 'store'])
+            ->middleware('subscription.limit:users')
+            ->name('user.store');
+        Route::get('/user/{user}', [UserController::class, 'show'])->name('user.show');
+        Route::get('/user/{user}/edit', [UserController::class, 'edit'])->name('user.edit');
+        Route::put('/user/{user}', [UserController::class, 'update'])->name('user.update');
+        Route::patch('/user/{user}/password', [UserController::class, 'updatePassword'])->name('user.update-password');
     });
 
-    // Routes Restaurants (Super-admin uniquement)
-    Route::middleware(['role:super-admin'])->prefix('restaurant')->name('restaurant.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\RestaurantController::class, 'index'])->name('index');
-        Route::get('/create', [\App\Http\Controllers\RestaurantController::class, 'create'])->name('create');
-        Route::post('/', [\App\Http\Controllers\RestaurantController::class, 'store'])->name('store');
-        Route::get('/{restaurant}', [\App\Http\Controllers\RestaurantController::class, 'show'])->name('show');
-        Route::post('/{restaurant}/suspend', [\App\Http\Controllers\RestaurantController::class, 'suspend'])->name('suspend');
-        Route::post('/{restaurant}/activate', [\App\Http\Controllers\RestaurantController::class, 'activate'])->name('activate');
-        Route::delete('/{restaurant}', [\App\Http\Controllers\RestaurantController::class, 'destroy'])->name('destroy');
-        Route::post('/{id}/restore', [\App\Http\Controllers\RestaurantController::class, 'restore'])->name('restore');
-        Route::delete('/{id}/force-delete', [\App\Http\Controllers\RestaurantController::class, 'forceDelete'])->name('force-delete');
-        
-        // Routes Abonnements
-        Route::get('/{restaurant}/abonnement/edit', [\App\Http\Controllers\AbonnementController::class, 'edit'])->name('abonnement.edit');
-        Route::put('/{restaurant}/abonnement', [\App\Http\Controllers\AbonnementController::class, 'update'])->name('abonnement.update');
-        Route::post('/{restaurant}/abonnement/suspend', [\App\Http\Controllers\AbonnementController::class, 'suspend'])->name('abonnement.suspend');
-        Route::post('/{restaurant}/abonnement/activate', [\App\Http\Controllers\AbonnementController::class, 'activate'])->name('abonnement.activate');
-    });
-
-    // Routes Serveurs (Admin uniquement)
-    Route::middleware(['role:admin'])->prefix('serveur')->name('serveur.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\ServeurController::class, 'index'])->name('index');
-        Route::get('/create', [\App\Http\Controllers\ServeurController::class, 'create'])->name('create');
-        Route::post('/', [\App\Http\Controllers\ServeurController::class, 'store'])->name('store');
-        Route::delete('/{serveur}', [\App\Http\Controllers\ServeurController::class, 'destroy'])->name('destroy');
-    });
-
-    // Routes Customisation Restaurant (Admin uniquement)
-    Route::middleware(['role:admin'])->prefix('restaurant/customization')->name('restaurant.customization.')->group(function () {
-        Route::get('/edit', [\App\Http\Controllers\RestaurantCustomizationController::class, 'edit'])->name('edit');
-        Route::put('/', [\App\Http\Controllers\RestaurantCustomizationController::class, 'update'])->name('update');
+    // Restaurant routes - Super Admin only
+    Route::middleware('role:super-admin')->group(function () {
+        Route::get('/restaurant', [RestaurantController::class, 'index'])->name('restaurant.index');
+        Route::get('/restaurant/create', [RestaurantController::class, 'create'])->name('restaurant.create');
+        Route::post('/restaurant', [RestaurantController::class, 'store'])->name('restaurant.store');
+        Route::get('/restaurant/{restaurant}', [RestaurantController::class, 'show'])->name('restaurant.show');
+        Route::post('/restaurant/{restaurant}/suspend', [RestaurantController::class, 'suspend'])->name('restaurant.suspend');
+        Route::post('/restaurant/{restaurant}/activate', [RestaurantController::class, 'activate'])->name('restaurant.activate');
+        Route::delete('/restaurant/{restaurant}', [RestaurantController::class, 'destroy'])->name('restaurant.destroy');
+        Route::post('/restaurant/{id}/restore', [RestaurantController::class, 'restore'])->name('restaurant.restore');
+        Route::delete('/restaurant/{id}/force-delete', [RestaurantController::class, 'forceDelete'])->name('restaurant.force-delete');
     });
 });
-
-// Routes publiques pour l'authentification des serveurs
-Route::prefix('serveur')->name('serveur.')->group(function () {
-    Route::get('/login', [\App\Http\Controllers\ServeurAuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [\App\Http\Controllers\ServeurAuthController::class, 'login'])->name('login.post');
-});
-
-// Routes pour les serveurs connectés
-Route::middleware(['auth', 'role:serveur', 'restaurant.access'])->prefix('serveur')->name('serveur.')->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Serveur/Dashboard');
-    })->name('dashboard');
-    Route::get('/vente/create', [\App\Http\Controllers\VenteController::class, 'create'])->name('vente.create');
-    Route::post('/vente', [\App\Http\Controllers\VenteController::class, 'store'])->name('vente.store');
-    Route::get('/vente', function (Request $request) {
-        $user = $request->user();
-        $ventes = \App\Models\Vente::with(['items.produit'])
-            ->where('user_id', $user->id)
-            ->where('restaurant_id', $user->restaurant_id)
-            ->latest()
-            ->paginate(20);
-        
-        return Inertia::render('Serveur/Ventes', [
-            'ventes' => $ventes,
-        ]);
-    })->name('vente.index');
-    Route::get('/vente/{vente}', [\App\Http\Controllers\VenteController::class, 'show'])->name('vente.show');
-    Route::post('/logout', [\App\Http\Controllers\ServeurAuthController::class, 'logout'])->name('logout');
-});
-
-require __DIR__.'/settings.php';

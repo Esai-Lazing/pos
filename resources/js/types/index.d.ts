@@ -37,9 +37,20 @@ export interface SubscriptionNotification {
     days_until_expiration?: number;
 }
 
+export interface Translations {
+    common: Record<string, string>;
+    stock: Record<string, string>;
+    sales: Record<string, string>;
+    reports: Record<string, string>;
+    printer: Record<string, string>;
+    auth: Record<string, string>;
+    validation: Record<string, string>;
+}
+
 export interface SharedData {
     name: string;
     quote: { message: string; author: string };
+    translations: Translations;
     auth: Auth;
     restaurant?: {
         id: number;
