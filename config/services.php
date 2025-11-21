@@ -35,4 +35,27 @@ return [
         ],
     ],
 
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+    ],
+
+    'mobile_money' => [
+        'provider' => env('MOBILE_MONEY_PROVIDER', 'orange_money'), // orange_money, airtel_money
+        'orange_money' => [
+            'merchant_id' => env('ORANGE_MONEY_MERCHANT_ID'),
+            'api_key' => env('ORANGE_MONEY_API_KEY'),
+            'api_url' => env('ORANGE_MONEY_API_URL', 'https://api.orange.com'),
+            'currency' => env('ORANGE_MONEY_CURRENCY', 'USD'),
+        ],
+        'airtel_money' => [
+            'client_id' => env('AIRTEL_MONEY_CLIENT_ID'),
+            'client_secret' => env('AIRTEL_MONEY_CLIENT_SECRET'),
+            'api_url' => env('AIRTEL_MONEY_API_URL', 'https://openapiuat.airtel.africa'),
+            'country' => env('AIRTEL_MONEY_COUNTRY', 'CD'),
+            'currency' => env('AIRTEL_MONEY_CURRENCY', 'USD'),
+        ],
+    ],
+
 ];

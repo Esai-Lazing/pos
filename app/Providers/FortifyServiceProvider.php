@@ -89,6 +89,7 @@ class FortifyServiceProvider extends ServiceProvider
             'typesEtablissement' => [
                 'restaurant' => 'Restaurant',
                 'bar' => 'Bar',
+                'restaurant_bar' => 'Restaurant/Bar',
                 'cafe' => 'Café',
                 'hotel' => 'Hôtel',
                 'fast-food' => 'Fast-Food',
@@ -105,10 +106,9 @@ class FortifyServiceProvider extends ServiceProvider
                 'autre' => 'Autre',
             ],
             'modesPaiement' => [
-                'mobile_money' => 'Mobile Money',
+                // 'mobile_money' => 'Mobile Money', // Temporairement désactivé
                 'carte_bancaire' => 'Carte Bancaire',
                 'espece' => 'Espèce',
-                'autre' => 'Autre',
             ],
         ]));
 

@@ -1,9 +1,9 @@
 import InputError from '@/components/input-error';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import { useRef } from 'react';
 
 import HeadingSmall from '@/components/heading-small';
@@ -20,6 +20,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Password() {
+    const { auth } = usePage<SharedData>().props;
+    const isAdmin = auth.user.role === 'admin' || auth.user.role === 'super-admin';
     const passwordInput = useRef<HTMLInputElement>(null);
     const currentPasswordInput = useRef<HTMLInputElement>(null);
 
@@ -31,10 +33,11 @@ export default function Password() {
                 <div className="space-y-6">
                     <HeadingSmall
                         title="Mettre à jour le mot de passe"
-                        description="Assurez-vous que votre compte utilise un mot de passe long et aléatoire pour rester sécurisé"
+                        description={isAdmin ? "Assurez-vous que votre compte utilise un mot de passe long et aléatoire pour rester sécurisé" : "La modification du mot de passe est réservée aux administrateurs"}
                     />
 
-                    <Form
+                    {isAdmin ? (
+                        <Form
                         {...update.form()}
                         options={{
                             preserveScroll: true,
@@ -137,7 +140,14 @@ export default function Password() {
                                 </div>
                             </>
                         )}
-                    </Form>
+                        </Form>
+                    ) : (
+                        <div className="rounded-lg border border-muted bg-muted/50 p-4">
+                            <p className="text-sm text-muted-foreground">
+                                La modification du mot de passe est réservée aux administrateurs. Contactez votre administrateur pour modifier votre mot de passe.
+                            </p>
+                        </div>
+                    )}
                 </div>
             </SettingsLayout>
         </AppLayout>

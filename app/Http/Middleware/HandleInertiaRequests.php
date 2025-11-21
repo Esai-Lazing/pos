@@ -60,8 +60,17 @@ class HandleInertiaRequests extends Middleware
             // Charger le restaurant et sa personnalisation
             $restaurant = $user->restaurant;
             if ($restaurant) {
-                $restaurant->load('customization');
+                $restaurant->load(['customization', 'abonnement']);
                 $restaurantCustomization = $restaurant->customization;
+            }
+        }
+
+        // Récupérer les limitations de l'abonnement pour le restaurant
+        $subscriptionLimitations = null;
+        if ($restaurant && $restaurant->hasActiveSubscription()) {
+            $abonnement = $restaurant->abonnement;
+            if ($abonnement) {
+                $subscriptionLimitations = $abonnement->getLimitations();
             }
         }
 
@@ -93,7 +102,13 @@ class HandleInertiaRequests extends Middleware
                     'ville' => $restaurantCustomization->ville,
                     'pays' => $restaurantCustomization->pays,
                     'couleur_principale' => $restaurantCustomization->couleur_principale,
+                    'primary_color' => $restaurantCustomization->primary_color ?? $restaurantCustomization->couleur_principale,
+                    'secondary_color' => $restaurantCustomization->secondary_color,
+                    'font_family' => $restaurantCustomization->font_family,
+                    'font_size' => $restaurantCustomization->font_size,
+                    'theme' => $restaurantCustomization->theme ?? 'default',
                 ] : null,
+                'subscriptionLimitations' => $subscriptionLimitations,
             ] : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'flash' => [
@@ -102,6 +117,14 @@ class HandleInertiaRequests extends Middleware
                 'warning' => $request->session()->get('warning'),
                 'info' => $request->session()->get('info'),
                 'admin_credentials' => $request->session()->get('admin_credentials'),
+                // Flash messages personnalisés pour les limites d'abonnement
+                'limit_reached' => $request->session()->get('limit_reached'),
+                'limit_message' => $request->session()->get('limit_message'),
+                'current_plan' => $request->session()->get('current_plan'),
+                'current_users' => $request->session()->get('current_users'),
+                'max_users' => $request->session()->get('max_users'),
+                // Flag pour l'abonnement expiré
+                'subscription_expired' => $request->session()->get('subscription_expired', false),
             ],
             'subscriptionNotifications' => $notifications,
         ];

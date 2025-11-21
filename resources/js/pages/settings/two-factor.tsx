@@ -3,16 +3,18 @@ import TwoFactorRecoveryCodes from '@/components/two-factor-recovery-codes';
 import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { disable, enable, show } from '@/routes/two-factor';
-import { type BreadcrumbItem } from '@/types';
-import { Form, Head } from '@inertiajs/react';
-import { ShieldBan, ShieldCheck } from 'lucide-react';
+import { type BreadcrumbItem, type SharedData } from '@/types';
+import { Form, Head, usePage } from '@inertiajs/react';
+import { ShieldBan, ShieldCheck, Lock } from 'lucide-react';
 import { useState } from 'react';
 
 interface TwoFactorProps {
+    hasAccess?: boolean;
     requiresConfirmation?: boolean;
     twoFactorEnabled?: boolean;
 }
@@ -25,9 +27,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function TwoFactor({
+    hasAccess = false,
     requiresConfirmation = false,
     twoFactorEnabled = false,
 }: TwoFactorProps) {
+    const { auth, restaurant } = usePage<SharedData>().props;
     const {
         qrCodeSvg,
         hasSetupData,
@@ -47,8 +51,22 @@ export default function TwoFactor({
                 <div className="space-y-6">
                     <HeadingSmall
                         title="Authentification à deux facteurs"
-                        description="Gérez les paramètres d'authentification à deux facteurs"
+                        description={hasAccess ? "Gérez les paramètres d'authentification à deux facteurs" : "L'authentification à deux facteurs est réservée aux administrateurs"}
                     />
+
+                    {!hasAccess ? (
+                        <Alert variant="destructive">
+                            <Lock className="h-4 w-4" />
+                            <AlertTitle>Accès restreint</AlertTitle>
+                            <AlertDescription className="mt-2">
+                                <p>
+                                    L'authentification à deux facteurs est réservée aux administrateurs de {restaurant?.nom || 'ce restaurant'}.
+                                    Contactez votre administrateur pour accéder à cette fonctionnalité.
+                                </p>
+                            </AlertDescription>
+                        </Alert>
+                    ) : (
+                        <>
                     {twoFactorEnabled ? (
                         <div className="flex flex-col items-start justify-start space-y-4">
                             <Badge variant="default">Activé</Badge>
@@ -119,17 +137,19 @@ export default function TwoFactor({
                         </div>
                     )}
 
-                    <TwoFactorSetupModal
-                        isOpen={showSetupModal}
-                        onClose={() => setShowSetupModal(false)}
-                        requiresConfirmation={requiresConfirmation}
-                        twoFactorEnabled={twoFactorEnabled}
-                        qrCodeSvg={qrCodeSvg}
-                        manualSetupKey={manualSetupKey}
-                        clearSetupData={clearSetupData}
-                        fetchSetupData={fetchSetupData}
-                        errors={errors}
-                    />
+                            <TwoFactorSetupModal
+                                isOpen={showSetupModal}
+                                onClose={() => setShowSetupModal(false)}
+                                requiresConfirmation={requiresConfirmation}
+                                twoFactorEnabled={twoFactorEnabled}
+                                qrCodeSvg={qrCodeSvg}
+                                manualSetupKey={manualSetupKey}
+                                clearSetupData={clearSetupData}
+                                fetchSetupData={fetchSetupData}
+                                errors={errors}
+                            />
+                        </>
+                    )}
                 </div>
             </SettingsLayout>
         </AppLayout>

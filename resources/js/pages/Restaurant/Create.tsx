@@ -71,9 +71,9 @@ export default function RestaurantCreate() {
                                     required
                                     className="w-full rounded-lg border border-input bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                                 >
-                                    <option value="basique">Basique</option>
-                                    <option value="premium">Premium</option>
-                                    <option value="enterprise">Enterprise</option>
+                                    <option value="simple">Starter</option>
+                                    <option value="medium">Business</option>
+                                    <option value="premium">Pro</option>
                                 </select>
                             </div>
 

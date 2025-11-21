@@ -31,6 +31,10 @@ class DashboardController extends Controller
         if ($user->isSuperAdmin()) {
             $data['is_super_admin'] = true;
             $data['role'] = 'super-admin';
+            // Compter les paiements en attente
+            $data['pending_payments'] = \App\Models\Abonnement::where('mode_paiement', 'espece')
+                ->where('statut_paiement', 'en_attente')
+                ->count();
         }
 
         // Filtrer par restaurant_id (sauf pour super-admin)
@@ -130,7 +134,13 @@ class DashboardController extends Controller
                 $limitations = $restaurant->getLimitations();
 
                 // Calculer les utilisations actuelles
-                $nbUsers = $restaurant->users()->count();
+                // Séparer les utilisateurs normaux des serveurs
+                $nbUsers = $restaurant->users()
+                    ->where('role', '!=', 'serveur')
+                    ->count();
+                $nbServeurs = $restaurant->users()
+                    ->where('role', 'serveur')
+                    ->count();
                 $nbProduits = $restaurant->produits()->count();
                 $nbVentesMois = $restaurant->ventes()
                     ->whereYear('created_at', now()->year)
@@ -146,17 +156,22 @@ class DashboardController extends Controller
                         'users' => [
                             'actuel' => $nbUsers,
                             'max' => $limitations['max_users'] ?? null,
-                            'pourcentage' => $limitations['max_users'] ? round(($nbUsers / $limitations['max_users']) * 100) : 0,
+                            'pourcentage' => isset($limitations['max_users']) && $limitations['max_users'] ? round(($nbUsers / $limitations['max_users']) * 100) : 0,
+                        ],
+                        'serveurs' => [
+                            'actuel' => $nbServeurs,
+                            'max' => $limitations['max_serveurs'] ?? null,
+                            'pourcentage' => isset($limitations['max_serveurs']) && $limitations['max_serveurs'] ? round(($nbServeurs / $limitations['max_serveurs']) * 100) : 0,
                         ],
                         'produits' => [
                             'actuel' => $nbProduits,
                             'max' => $limitations['max_produits'] ?? null,
-                            'pourcentage' => $limitations['max_produits'] ? round(($nbProduits / $limitations['max_produits']) * 100) : 0,
+                            'pourcentage' => isset($limitations['max_produits']) && $limitations['max_produits'] ? round(($nbProduits / $limitations['max_produits']) * 100) : 0,
                         ],
                         'ventes_mois' => [
                             'actuel' => $nbVentesMois,
                             'max' => $limitations['max_ventes_mois'] ?? null,
-                            'pourcentage' => $limitations['max_ventes_mois'] ? round(($nbVentesMois / $limitations['max_ventes_mois']) * 100) : 0,
+                            'pourcentage' => isset($limitations['max_ventes_mois']) && $limitations['max_ventes_mois'] ? round(($nbVentesMois / $limitations['max_ventes_mois']) * 100) : 0,
                         ],
                     ],
                 ];

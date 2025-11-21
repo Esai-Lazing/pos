@@ -21,12 +21,13 @@ class UserController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $restaurant = $user->restaurant;
 
         // Exclure les super-admins de la liste
         $query = User::query()->where('role', '!=', 'super-admin');
 
         // Si l'utilisateur est un admin (pas super-admin), filtrer par restaurant
-        if (!$user->isSuperAdmin() && $user->restaurant_id) {
+        if (! $user->isSuperAdmin() && $user->restaurant_id) {
             $query->where('restaurant_id', $user->restaurant_id);
         }
 
@@ -52,9 +53,35 @@ class UserController extends Controller
 
         $users = $query->latest()->paginate(20);
 
+        // Calculer les statistiques d'utilisateurs et serveurs
+        $userStats = [
+            'total_users' => 0,
+            'total_serveurs' => 0,
+            'max_users' => null,
+            'max_serveurs' => null,
+        ];
+
+        if ($restaurant) {
+            $limitations = $restaurant->getLimitations();
+            $userStats['max_users'] = $limitations['max_users'] ?? null;
+            $userStats['max_serveurs'] = $limitations['max_serveurs'] ?? null;
+
+            // Compter les utilisateurs non-serveurs
+            $userStats['total_users'] = $restaurant->users()
+                ->where('role', '!=', 'serveur')
+                ->where('role', '!=', 'super-admin')
+                ->count();
+
+            // Compter les serveurs
+            $userStats['total_serveurs'] = $restaurant->users()
+                ->where('role', 'serveur')
+                ->count();
+        }
+
         return Inertia::render('User/Index', [
             'users' => $users,
             'filters' => $request->only(['search', 'role', 'is_active']),
+            'userStats' => $userStats,
         ]);
     }
 
@@ -72,12 +99,39 @@ class UserController extends Controller
     public function store(StoreUserRequest $request): RedirectResponse
     {
         $currentUser = $request->user();
+        $restaurant = $currentUser->restaurant;
 
         $data = $request->validated();
 
         // Associer l'utilisateur au restaurant de l'admin qui le crée
-        if (!$currentUser->isSuperAdmin() && $currentUser->restaurant_id) {
+        if (! $currentUser->isSuperAdmin() && $currentUser->restaurant_id) {
             $data['restaurant_id'] = $currentUser->restaurant_id;
+        }
+
+        // Vérifier la limite d'utilisateurs (non-serveurs)
+        if ($restaurant && $restaurant->hasReachedUserLimit()) {
+            $limitations = $restaurant->getLimitations();
+            $maxUsers = $limitations['max_users'] ?? null;
+            $currentUsers = $restaurant->users()
+                ->where('role', '!=', 'serveur')
+                ->where('role', '!=', 'super-admin')
+                ->count();
+
+            return redirect()->back()
+                ->withInput()
+                ->withErrors([
+                    'limit_reached' => true,
+                    'limit_message' => $maxUsers === null
+                        ? 'Impossible de créer plus d\'utilisateurs.'
+                        : "Vous avez atteint la limite d'utilisateurs de votre plan ({$currentUsers}/{$maxUsers}). Veuillez upgrader votre abonnement pour ajouter plus d'utilisateurs.",
+                ])
+                ->with('limit_reached', true)
+                ->with('limit_message', $maxUsers === null
+                    ? 'Impossible de créer plus d\'utilisateurs.'
+                    : "Vous avez atteint la limite d'utilisateurs de votre plan ({$currentUsers}/{$maxUsers}). Veuillez upgrader votre abonnement pour ajouter plus d'utilisateurs.")
+                ->with('current_plan', $restaurant->abonnement?->plan ?? 'N/A')
+                ->with('current_users', $currentUsers)
+                ->with('max_users', $maxUsers);
         }
 
         // Hasher le mot de passe
@@ -105,7 +159,7 @@ class UserController extends Controller
             abort(403, 'Accès refusé à cet utilisateur.');
         }
 
-        if (!$currentUser->isSuperAdmin() && $currentUser->restaurant_id) {
+        if (! $currentUser->isSuperAdmin() && $currentUser->restaurant_id) {
             if ($user->restaurant_id !== $currentUser->restaurant_id) {
                 abort(403, 'Accès refusé à cet utilisateur.');
             }
@@ -131,7 +185,7 @@ class UserController extends Controller
             abort(403, 'Accès refusé à cet utilisateur.');
         }
 
-        if (!$currentUser->isSuperAdmin() && $currentUser->restaurant_id) {
+        if (! $currentUser->isSuperAdmin() && $currentUser->restaurant_id) {
             if ($user->restaurant_id !== $currentUser->restaurant_id) {
                 abort(403, 'Accès refusé à cet utilisateur.');
             }
@@ -155,7 +209,7 @@ class UserController extends Controller
             abort(403, 'Accès refusé à cet utilisateur.');
         }
 
-        if (!$currentUser->isSuperAdmin() && $currentUser->restaurant_id) {
+        if (! $currentUser->isSuperAdmin() && $currentUser->restaurant_id) {
             if ($user->restaurant_id !== $currentUser->restaurant_id) {
                 abort(403, 'Accès refusé à cet utilisateur.');
             }
@@ -172,7 +226,7 @@ class UserController extends Controller
         }
 
         // Ne pas permettre de changer le restaurant_id pour les admins non super-admin
-        if (!$currentUser->isSuperAdmin()) {
+        if (! $currentUser->isSuperAdmin()) {
             unset($data['restaurant_id']);
         }
 
@@ -195,7 +249,7 @@ class UserController extends Controller
             abort(403, 'Accès refusé à cet utilisateur.');
         }
 
-        if (!$currentUser->isSuperAdmin() && $currentUser->restaurant_id) {
+        if (! $currentUser->isSuperAdmin() && $currentUser->restaurant_id) {
             if ($user->restaurant_id !== $currentUser->restaurant_id) {
                 abort(403, 'Accès refusé à cet utilisateur.');
             }

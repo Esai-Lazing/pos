@@ -64,6 +64,20 @@ export interface SharedData {
             ville?: string;
             pays?: string;
             couleur_principale?: string;
+            primary_color?: string;
+            secondary_color?: string;
+            theme?: string;
+        } | null;
+        subscriptionLimitations?: {
+            max_users?: number | null;
+            max_serveurs?: number | null;
+            max_produits?: number | null;
+            max_ventes_mois?: number | null;
+            rapports?: boolean;
+            impression?: boolean;
+            personnalisation?: boolean;
+            personnalisation_pizza?: boolean;
+            support?: string;
         } | null;
     } | null;
     sidebarOpen: boolean;
@@ -77,6 +91,7 @@ export interface SharedData {
             password: string;
             name: string;
         };
+        subscription_expired?: boolean;
     };
     subscriptionNotifications?: SubscriptionNotification[];
     [key: string]: unknown;

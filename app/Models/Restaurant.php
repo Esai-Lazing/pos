@@ -187,6 +187,7 @@ class Restaurant extends Model
 
     /**
      * Vérifier si le restaurant a atteint la limite d'utilisateurs
+     * Note: Les serveurs sont comptés séparément avec max_serveurs
      */
     public function hasReachedUserLimit(): bool
     {
@@ -197,7 +198,31 @@ class Restaurant extends Model
             return false; // Illimité
         }
 
-        return $this->users()->count() >= $maxUsers;
+        // Compter uniquement les utilisateurs non-serveurs (admin, caisse, stock)
+        $nonServeurCount = $this->users()
+            ->where('role', '!=', 'serveur')
+            ->count();
+
+        return $nonServeurCount >= $maxUsers;
+    }
+
+    /**
+     * Vérifier si le restaurant a atteint la limite de serveurs
+     */
+    public function hasReachedServerLimit(): bool
+    {
+        $limitations = $this->getLimitations();
+        $maxServeurs = $limitations['max_serveurs'] ?? null;
+
+        if ($maxServeurs === null) {
+            return false; // Illimité
+        }
+
+        $serveurCount = $this->users()
+            ->where('role', 'serveur')
+            ->count();
+
+        return $serveurCount >= $maxServeurs;
     }
 
     /**

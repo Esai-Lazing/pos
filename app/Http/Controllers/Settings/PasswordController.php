@@ -24,12 +24,19 @@ class PasswordController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
+        // Seuls les administrateurs peuvent modifier leur mot de passe
+        if (!$user->isAdmin() && !$user->isSuperAdmin()) {
+            return redirect()->back()->with('error', 'Seuls les administrateurs peuvent modifier leur mot de passe.');
+        }
+
         $validated = $request->validate([
             'current_password' => ['required', 'current_password'],
             'password' => ['required', Password::defaults(), 'confirmed'],
         ]);
 
-        $request->user()->update([
+        $user->update([
             'password' => $validated['password'],
         ]);
 

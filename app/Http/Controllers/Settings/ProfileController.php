@@ -29,13 +29,20 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        // Seuls les administrateurs peuvent modifier leur profil
+        if (!$user->isAdmin() && !$user->isSuperAdmin()) {
+            return redirect()->back()->with('error', 'Seuls les administrateurs peuvent modifier leur profil.');
         }
 
-        $request->user()->save();
+        $user->fill($request->validated());
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        $user->save();
 
         return to_route('profile.edit');
     }
@@ -45,11 +52,16 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
+        // Seuls les administrateurs peuvent supprimer leur compte
+        if (!$user->isAdmin() && !$user->isSuperAdmin()) {
+            return redirect()->back()->with('error', 'Seuls les administrateurs peuvent supprimer leur compte.');
+        }
+
         $request->validate([
             'password' => ['required', 'current_password'],
         ]);
-
-        $user = $request->user();
 
         Auth::logout();
 

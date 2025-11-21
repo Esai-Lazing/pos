@@ -28,6 +28,18 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+const getPlanName = (plan: string | null) => {
+    if (!plan) {
+        return 'Aucun plan';
+    }
+    const plans: Record<string, string> = {
+        simple: 'Starter',
+        medium: 'Business',
+        premium: 'Pro',
+    };
+    return plans[plan] || plan;
+};
+
 interface Statistiques {
     restaurants?: {
         total: number;
@@ -121,6 +133,7 @@ interface Abonnement {
     est_actif: boolean;
     limitations: {
         max_users?: number | null;
+        max_serveurs?: number | null;
         max_produits?: number | null;
         max_ventes_mois?: number | null;
         rapports?: boolean;
@@ -129,6 +142,11 @@ interface Abonnement {
     };
     utilisation: {
         users: {
+            actuel: number;
+            max: number | null;
+            pourcentage: number;
+        };
+        serveurs?: {
             actuel: number;
             max: number | null;
             pourcentage: number;
@@ -149,6 +167,7 @@ interface Abonnement {
 interface Props {
     role: 'admin' | 'caisse' | 'stock' | 'super-admin';
     is_super_admin?: boolean;
+    pending_payments?: number;
     statistiques?: Statistiques;
     produits_vendus?: ProduitVendu[];
     dernieres_ventes?: Vente[];
@@ -161,6 +180,7 @@ interface Props {
 export default function Dashboard({
     role,
     is_super_admin = false,
+    pending_payments = 0,
     statistiques,
     produits_vendus,
     dernieres_ventes,
@@ -183,6 +203,32 @@ export default function Dashboard({
                             Bienvenue, {auth.user.name}
                         </div>
                     </div>
+
+                    {/* Alerte pour les paiements en attente */}
+                    {pending_payments > 0 && (
+                        <div className="rounded-lg border border-yellow-500 bg-yellow-50 p-4 dark:bg-yellow-950">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                                    <div>
+                                        <div className="font-semibold text-yellow-900 dark:text-yellow-100">
+                                            {pending_payments} paiement(s) en attente de validation
+                                        </div>
+                                        <div className="text-sm text-yellow-800 dark:text-yellow-200">
+                                            Des restaurants ont sélectionné le paiement en espèce et attendent votre validation.
+                                        </div>
+                                    </div>
+                                </div>
+                                <Link
+                                    href="/admin/subscriptions"
+                                    className="flex items-center gap-2 rounded-lg bg-yellow-600 px-4 py-2 text-white hover:bg-yellow-700 transition-colors"
+                                >
+                                    Gérer les abonnements
+                                    <ArrowRight className="h-4 w-4" />
+                                </Link>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Statistiques des restaurants */}
                     {statistiques?.restaurants && (
@@ -333,7 +379,7 @@ export default function Dashboard({
                                             </div>
                                             {restaurant.abonnement && (
                                                 <div className="text-xs text-muted-foreground mt-1">
-                                                    Plan: {restaurant.abonnement.plan} • {restaurant.abonnement.statut}
+                                                    Plan: {getPlanName(restaurant.abonnement.plan)} • {restaurant.abonnement.statut}
                                                 </div>
                                             )}
                                         </div>
@@ -469,7 +515,7 @@ export default function Dashboard({
                             <div className="mb-4">
                                 <div className="text-sm text-muted-foreground">Plan actuel</div>
                                 <div className="text-xl font-bold capitalize">
-                                    {abonnement.plan || 'Aucun plan'}
+                                    {getPlanName(abonnement.plan)}
                                 </div>
                                 {abonnement.date_fin && (
                                     <div className="text-sm text-muted-foreground mt-1">
@@ -482,7 +528,7 @@ export default function Dashboard({
                             <div className="space-y-3">
                                 <div>
                                     <div className="flex items-center justify-between mb-1">
-                                        <span className="text-sm font-medium">Utilisateurs</span>
+                                        <span className="text-sm font-medium">Utilisateurs (admin, gérant, caisse, stock)</span>
                                         <span className="text-sm text-muted-foreground">
                                             {abonnement.utilisation.users.actuel}
                                             {abonnement.utilisation.users.max !== null
@@ -507,6 +553,37 @@ export default function Dashboard({
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Serveurs */}
+                                {abonnement.utilisation.serveurs && (
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-sm font-medium">Serveur(e)s</span>
+                                            <span className="text-sm text-muted-foreground">
+                                                {abonnement.utilisation.serveurs.actuel}
+                                                {abonnement.utilisation.serveurs.max !== null
+                                                    ? ` / ${abonnement.utilisation.serveurs.max}`
+                                                    : ' / Illimité'}
+                                            </span>
+                                        </div>
+                                        {abonnement.utilisation.serveurs.max !== null && (
+                                            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                                                <div
+                                                    className={`h-full transition-all ${
+                                                        abonnement.utilisation.serveurs.pourcentage >= 90
+                                                            ? 'bg-red-500'
+                                                            : abonnement.utilisation.serveurs.pourcentage >= 70
+                                                              ? 'bg-yellow-500'
+                                                              : 'bg-green-500'
+                                                    }`}
+                                                    style={{
+                                                        width: `${Math.min(abonnement.utilisation.serveurs.pourcentage, 100)}%`,
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 <div>
                                     <div className="flex items-center justify-between mb-1">

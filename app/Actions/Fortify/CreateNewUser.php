@@ -35,11 +35,11 @@ class CreateNewUser implements CreatesNewUsers
             // Restaurant fields
             'restaurant_nom' => ['required', 'string', 'max:255'],
             'restaurant_telephone' => ['nullable', 'string', 'max:255'],
-            'restaurant_type_etablissement' => ['required', 'string', Rule::in(['restaurant', 'bar', 'cafe', 'hotel', 'fast-food', 'autre'])],
+            'restaurant_type_etablissement' => ['required', 'string', Rule::in(['restaurant', 'bar', 'restaurant_bar', 'cafe', 'hotel', 'fast-food', 'autre'])],
             'restaurant_categorie' => ['nullable', 'string', 'max:255'],
             // Subscription fields
             'plan' => ['required', 'string', Rule::in(['simple', 'medium', 'premium'])],
-            'mode_paiement' => ['required', 'string', Rule::in(['mobile_money', 'carte_bancaire', 'espece', 'autre'])],
+            'mode_paiement' => ['required', 'string', Rule::in(['carte_bancaire', 'espece'])], // mobile_money temporairement désactivé
             'numero_transaction' => ['nullable', 'string', 'max:255'],
         ])->validate();
 
@@ -62,29 +62,45 @@ class CreateNewUser implements CreatesNewUsers
                 'date_creation' => now(),
             ]);
 
-            // Créer l'abonnement
+            // Créer l'abonnement avec statut en attente de paiement
             $abonnement = Abonnement::create([
                 'restaurant_id' => $restaurant->id,
                 'plan' => $input['plan'],
                 'montant_mensuel' => $planData['montant_mensuel'],
                 'mode_paiement' => $input['mode_paiement'],
                 'numero_transaction' => $input['numero_transaction'] ?? null,
-                'date_paiement' => now(),
                 'date_debut' => now(),
                 'date_fin' => now()->addMonth(), // Abonnement mensuel
-                'est_actif' => true,
-                'statut' => 'actif',
+                'est_actif' => false, // Inactif jusqu'à validation du paiement
+                'statut' => 'en_attente',
+                'statut_paiement' => 'en_attente', // en_attente, en_cours, valide, refuse
                 'limitations' => $planData['limitations'],
             ]);
 
-            // Créer l'utilisateur admin du restaurant
+            // Notifier le super admin si paiement en espèce
+            if ($input['mode_paiement'] === 'espece') {
+                // Envoyer une notification au super admin
+                $superAdmins = User::where('role', 'super-admin')->get();
+                foreach ($superAdmins as $admin) {
+                    // On peut utiliser des notifications Laravel ici
+                    // Pour l'instant, on log juste l'événement
+                    \Illuminate\Support\Facades\Log::info('Nouveau paiement en espèce en attente', [
+                        'restaurant_id' => $restaurant->id,
+                        'restaurant_nom' => $restaurant->nom,
+                        'abonnement_id' => $abonnement->id,
+                        'montant' => $abonnement->montant_mensuel,
+                    ]);
+                }
+            }
+
+            // Créer l'utilisateur admin du restaurant (mais sans accès jusqu'à validation)
             $user = User::create([
                 'name' => $input['name'],
                 'email' => $input['email'],
                 'password' => $input['password'],
                 'role' => 'admin',
                 'restaurant_id' => $restaurant->id,
-                'is_active' => true,
+                'is_active' => false, // Inactif jusqu'à validation du paiement
                 'email_verified_at' => now(),
             ]);
 

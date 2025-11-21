@@ -25,7 +25,7 @@ class StoreRestaurantRequest extends FormRequest
             'nom' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:restaurants,email', 'unique:users,email'],
             'telephone' => ['nullable', 'string', 'max:20'],
-            'plan' => ['required', 'string', 'in:basique,premium,enterprise'],
+            'plan' => ['required', 'string', 'in:simple,medium,premium'],
             'montant_mensuel' => ['required', 'numeric', 'min:0'],
             'date_debut' => ['required', 'date'],
             'date_fin' => ['nullable', 'date', 'after:date_debut'],

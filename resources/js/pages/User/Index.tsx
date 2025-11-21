@@ -1,8 +1,9 @@
 import AppLayout from '@/layouts/app-layout';
 import * as userRoutes from '@/routes/user';
+import * as serveurRoutes from '@/routes/serveur';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Search, Users as UsersIcon, Shield, UserCheck, UserX, UserPlus } from 'lucide-react';
+import { Search, Users as UsersIcon, Shield, UserCheck, UserX, UserPlus, UtensilsCrossed } from 'lucide-react';
 import { useState } from 'react';
 
 interface User {
@@ -28,6 +29,12 @@ interface Props {
         role?: string;
         is_active?: boolean;
     };
+    userStats?: {
+        total_users: number;
+        total_serveurs: number;
+        max_users: number | null;
+        max_serveurs: number | null;
+    };
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -51,7 +58,7 @@ const roleColors: Record<string, string> = {
     serveur: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
 };
 
-export default function UserIndex({ users, filters }: Props) {
+export default function UserIndex({ users, filters, userStats }: Props) {
     const [search, setSearch] = useState(filters.search || '');
 
     const handleSearch = (e: React.FormEvent) => {
@@ -66,15 +73,45 @@ export default function UserIndex({ users, filters }: Props) {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <UsersIcon className="h-8 w-8 text-primary" />
-                        <h1 className="text-2xl font-bold">Gestion des Utilisateurs</h1>
+                        <div>
+                            <h1 className="text-2xl font-bold">Gestion des Utilisateurs</h1>
+                            {userStats && (
+                                <div className="mt-1 flex gap-4 text-sm text-muted-foreground">
+                                    <span>
+                                        Utilisateurs: {userStats.total_users}
+                                        {userStats.max_users !== null && ` / ${userStats.max_users}`}
+                                    </span>
+                                    <span>
+                                        Serveurs: {userStats.total_serveurs}
+                                        {userStats.max_serveurs !== null && ` / ${userStats.max_serveurs}`}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                    <Link
-                        href={userRoutes.create().url}
-                        className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground hover:bg-primary/90"
-                    >
-                        <UserPlus className="h-4 w-4" />
-                        Créer un utilisateur
-                    </Link>
+                    <div className="flex gap-2">
+                        <Link
+                            href={userRoutes.create().url}
+                            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground hover:bg-primary/90"
+                        >
+                            <UserPlus className="h-4 w-4" />
+                            Créer un utilisateur
+                        </Link>
+                        <Link
+                            href={serveurRoutes.create().url}
+                            className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 font-semibold hover:bg-muted"
+                        >
+                            <UserPlus className="h-4 w-4" />
+                            Créer un serveur
+                        </Link>
+                        <Link
+                            href={serveurRoutes.index().url}
+                            className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 font-semibold hover:bg-muted"
+                        >
+                            <UtensilsCrossed className="h-4 w-4" />
+                            Voir les serveurs
+                        </Link>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSearch} className="flex gap-2">

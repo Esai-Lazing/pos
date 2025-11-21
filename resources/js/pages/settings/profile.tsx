@@ -28,6 +28,7 @@ export default function Profile({
     status?: string;
 }) {
     const { auth } = usePage<SharedData>().props;
+    const isAdmin = auth.user.role === 'admin' || auth.user.role === 'super-admin';
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -37,109 +38,137 @@ export default function Profile({
                 <div className="space-y-6">
                     <HeadingSmall
                         title="Informations du profil"
-                        description="Mettez à jour votre nom et votre adresse email"
+                        description={isAdmin ? "Mettez à jour votre nom et votre adresse email" : "Informations du profil (lecture seule)"}
                     />
 
-                    <Form
-                        {...update.form()}
-                        options={{
-                            preserveScroll: true,
-                        }}
-                        className="space-y-6"
-                    >
-                        {({ processing, recentlySuccessful, errors }) => (
-                            <>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="name">Nom</Label>
+                    {isAdmin ? (
+                        <Form
+                            action={update.url()}
+                            method="patch"
+                            options={{
+                                preserveScroll: true,
+                            }}
+                            className="space-y-6"
+                        >
+                            {({ processing, recentlySuccessful, errors }) => (
+                                <>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="name">Nom</Label>
 
-                                    <Input
-                                        id="name"
-                                        className="mt-1 block w-full"
-                                        defaultValue={auth.user.name}
-                                        name="name"
-                                        required
-                                        autoComplete="name"
-                                        placeholder="Nom complet"
-                                    />
+                                        <Input
+                                            id="name"
+                                            className="mt-1 block w-full"
+                                            defaultValue={auth.user.name}
+                                            name="name"
+                                            required
+                                            autoComplete="name"
+                                            placeholder="Nom complet"
+                                        />
 
-                                    <InputError
-                                        className="mt-2"
-                                        message={errors.name}
-                                    />
-                                </div>
+                                        <InputError
+                                            className="mt-2"
+                                            message={errors.name}
+                                        />
+                                    </div>
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="email">Adresse email</Label>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="email">Adresse email</Label>
 
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        className="mt-1 block w-full"
-                                        defaultValue={auth.user.email}
-                                        name="email"
-                                        required
-                                        autoComplete="username"
-                                        placeholder="Adresse email"
-                                    />
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            className="mt-1 block w-full"
+                                            defaultValue={auth.user.email}
+                                            name="email"
+                                            required
+                                            autoComplete="username"
+                                            placeholder="Adresse email"
+                                        />
 
-                                    <InputError
-                                        className="mt-2"
-                                        message={errors.email}
-                                    />
-                                </div>
+                                        <InputError
+                                            className="mt-2"
+                                            message={errors.email}
+                                        />
+                                    </div>
 
-                                {mustVerifyEmail &&
-                                    auth.user.email_verified_at === null && (
-                                        <div>
-                                            <p className="-mt-4 text-sm text-muted-foreground">
-                                                Votre adresse email n'est pas
-                                                vérifiée.{' '}
-                                                <Link
-                                                    href={send()}
-                                                    as="button"
-                                                    className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                                                >
-                                                    Cliquez ici pour renvoyer l'email
-                                                    de vérification.
-                                                </Link>
+                                    {mustVerifyEmail &&
+                                        auth.user.email_verified_at === null && (
+                                            <div>
+                                                <p className="-mt-4 text-sm text-muted-foreground">
+                                                    Votre adresse email n'est pas
+                                                    vérifiée.{' '}
+                                                    <Link
+                                                        href={send()}
+                                                        as="button"
+                                                        className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                                                    >
+                                                        Cliquez ici pour renvoyer l'email
+                                                        de vérification.
+                                                    </Link>
+                                                </p>
+
+                                                {status ===
+                                                    'verification-link-sent' && (
+                                                        <div className="mt-2 text-sm font-medium text-green-600">
+                                                            Un nouveau lien de vérification a
+                                                            été envoyé à votre adresse email.
+                                                        </div>
+                                                    )}
+                                            </div>
+                                        )}
+
+                                    <div className="flex items-center gap-4">
+                                        <Button
+                                            disabled={processing}
+                                            data-test="update-profile-button"
+                                        >
+                                            Enregistrer
+                                        </Button>
+
+                                        <Transition
+                                            show={recentlySuccessful}
+                                            enter="transition ease-in-out"
+                                            enterFrom="opacity-0"
+                                            leave="transition ease-in-out"
+                                            leaveTo="opacity-0"
+                                        >
+                                            <p className="text-sm text-neutral-600">
+                                                Enregistré
                                             </p>
+                                        </Transition>
+                                    </div>
+                                </>
+                            )}
+                        </Form>
+                    ) : (
+                        <div className="space-y-6">
+                            <div className="grid gap-2">
+                                <Label htmlFor="name">Nom</Label>
+                                <Input
+                                    id="name"
+                                    className="mt-1 block w-full bg-muted"
+                                    value={auth.user.name}
+                                    readOnly
+                                    disabled
+                                />
+                            </div>
 
-                                            {status ===
-                                                'verification-link-sent' && (
-                                                <div className="mt-2 text-sm font-medium text-green-600">
-                                                    Un nouveau lien de vérification a
-                                                    été envoyé à votre adresse email.
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                <div className="flex items-center gap-4">
-                                    <Button
-                                        disabled={processing}
-                                        data-test="update-profile-button"
-                                    >
-                                        Enregistrer
-                                    </Button>
-
-                                    <Transition
-                                        show={recentlySuccessful}
-                                        enter="transition ease-in-out"
-                                        enterFrom="opacity-0"
-                                        leave="transition ease-in-out"
-                                        leaveTo="opacity-0"
-                                    >
-                                        <p className="text-sm text-neutral-600">
-                                            Enregistré
-                                        </p>
-                                    </Transition>
-                                </div>
-                            </>
-                        )}
-                    </Form>
+                            <div className="grid gap-2">
+                                <Label htmlFor="email">Adresse email</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    className="mt-1 block w-full bg-muted"
+                                    value={auth.user.email}
+                                    readOnly
+                                    disabled
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                <DeleteUser />
+                {isAdmin && <DeleteUser />}
             </SettingsLayout>
         </AppLayout>
     );

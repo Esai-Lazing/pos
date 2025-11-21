@@ -34,27 +34,29 @@ class SubscriptionPlan extends Model
     {
         return [
             'simple' => [
-                'name' => 'Simple',
+                'name' => 'Starter',
                 'slug' => 'simple',
-                'description' => 'Accès limité aux fonctionnalités de base',
-                'montant_mensuel' => 50000, // 50 000 FC
+                'description' => 'Solution idéale pour les petits établissements qui démarrent',
+                'montant_mensuel' => 25.00, // 25 USD (environ 50 000 FC)
                 'limitations' => [
-                    'max_users' => 2,
+                    'max_users' => 4, // admin, gérant, caisse, stock
+                    'max_serveurs' => 5,
                     'max_produits' => 50,
                     'max_ventes_mois' => 500,
-                    'rapports' => false,
+                    'rapports' => true,
                     'impression' => true,
                     'personnalisation' => false,
                     'support' => 'email',
                 ],
             ],
             'medium' => [
-                'name' => 'Medium',
+                'name' => 'Business',
                 'slug' => 'medium',
-                'description' => 'Accès plus poussé avec fonctionnalités avancées',
-                'montant_mensuel' => 100000, // 100 000 FC
+                'description' => 'Parfait pour les établissements en croissance avec des besoins avancés',
+                'montant_mensuel' => 50.00, // 50 USD (environ 100 000 FC)
                 'limitations' => [
-                    'max_users' => 5,
+                    'max_users' => 10,
+                    'max_serveurs' => 20,
                     'max_produits' => 200,
                     'max_ventes_mois' => 2000,
                     'rapports' => true,
@@ -64,12 +66,13 @@ class SubscriptionPlan extends Model
                 ],
             ],
             'premium' => [
-                'name' => 'Premium',
+                'name' => 'Pro',
                 'slug' => 'premium',
-                'description' => 'Accès total à toutes les fonctionnalités',
-                'montant_mensuel' => 200000, // 200 000 FC
+                'description' => 'Solution complète pour les grandes entreprises sans limites',
+                'montant_mensuel' => 100.00, // 100 USD (environ 200 000 FC)
                 'limitations' => [
                     'max_users' => null, // Illimité
+                    'max_serveurs' => null, // Illimité
                     'max_produits' => null, // Illimité
                     'max_ventes_mois' => null, // Illimité
                     'rapports' => true,

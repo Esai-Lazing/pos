@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('abonnements', function (Blueprint $table) {
             $table->id();
             $table->foreignId('restaurant_id')->constrained()->onDelete('cascade');
-            $table->string('plan')->default('basique'); // basique, premium, enterprise
+            $table->string('plan')->default('simple'); // simple, medium, premium
             $table->decimal('montant_mensuel', 10, 2);
             $table->date('date_debut');
             $table->date('date_fin')->nullable();

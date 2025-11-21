@@ -19,6 +19,9 @@ interface Abonnement {
     date_fin?: string;
     statut: string;
     est_actif: boolean;
+    mode_paiement?: string;
+    statut_paiement?: string;
+    numero_transaction?: string;
 }
 
 interface User {
@@ -47,9 +50,10 @@ interface Restaurant {
 
 interface Props {
     restaurant: Restaurant;
+    isSuperAdmin?: boolean;
 }
 
-export default function RestaurantShow({ restaurant }: Props) {
+export default function RestaurantShow({ restaurant, isSuperAdmin = false }: Props) {
     const { flash } = usePage<SharedData>().props;
     const [isSuspending, setIsSuspending] = useState(false);
     const [isActivating, setIsActivating] = useState(false);
@@ -495,6 +499,92 @@ export default function RestaurantShow({ restaurant }: Props) {
                                         )}
                                     </div>
                                 </div>
+                                {restaurant.abonnement.mode_paiement && (
+                                    <div>
+                                        <label className="text-sm font-medium text-muted-foreground">Mode de paiement</label>
+                                        <p className="text-lg capitalize">
+                                            {restaurant.abonnement.mode_paiement === 'mobile_money' ? 'Mobile Money' :
+                                             restaurant.abonnement.mode_paiement === 'carte_bancaire' ? 'Carte Bancaire' :
+                                             restaurant.abonnement.mode_paiement === 'espece' ? 'Espèce' :
+                                             restaurant.abonnement.mode_paiement}
+                                        </p>
+                                    </div>
+                                )}
+                                {restaurant.abonnement.statut_paiement && (
+                                    <div>
+                                        <label className="text-sm font-medium text-muted-foreground">Statut du paiement</label>
+                                        <div className="mt-1 flex items-center gap-2">
+                                            <span
+                                                className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                                                    restaurant.abonnement.statut_paiement === 'valide'
+                                                        ? 'bg-green-500/10 text-green-500'
+                                                        : restaurant.abonnement.statut_paiement === 'en_attente'
+                                                        ? 'bg-yellow-500/10 text-yellow-500'
+                                                        : restaurant.abonnement.statut_paiement === 'refuse'
+                                                        ? 'bg-red-500/10 text-red-500'
+                                                        : 'bg-gray-500/10 text-gray-500'
+                                                }`}
+                                            >
+                                                {restaurant.abonnement.statut_paiement === 'valide'
+                                                    ? 'Validé'
+                                                    : restaurant.abonnement.statut_paiement === 'en_attente'
+                                                    ? 'En attente'
+                                                    : restaurant.abonnement.statut_paiement === 'refuse'
+                                                    ? 'Refusé'
+                                                    : restaurant.abonnement.statut_paiement}
+                                            </span>
+                                            {isSuperAdmin && 
+                                             restaurant.abonnement.mode_paiement === 'espece' && 
+                                             restaurant.abonnement.statut_paiement === 'en_attente' && (
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (confirm('Valider ce paiement en espèce ?')) {
+                                                                router.post(`/payment/${restaurant.abonnement!.id}/validate`, {}, {
+                                                                    preserveScroll: true,
+                                                                    onSuccess: () => {
+                                                                        router.reload({ only: ['restaurant'] });
+                                                                    },
+                                                                });
+                                                            }
+                                                        }}
+                                                        className="flex items-center gap-1 rounded-lg border border-green-500 bg-background px-2 py-1 text-xs text-green-500 hover:bg-green-500/10"
+                                                    >
+                                                        <CheckCircle className="h-3 w-3" />
+                                                        Valider
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const notes = prompt('Raison du refus (optionnel):');
+                                                            if (notes !== null) {
+                                                                router.post(`/payment/${restaurant.abonnement!.id}/reject`, {
+                                                                    notes: notes || '',
+                                                                }, {
+                                                                    preserveScroll: true,
+                                                                    onSuccess: () => {
+                                                                        router.reload({ only: ['restaurant'] });
+                                                                    },
+                                                                });
+                                                            }
+                                                        }}
+                                                        className="flex items-center gap-1 rounded-lg border border-red-500 bg-background px-2 py-1 text-xs text-red-500 hover:bg-red-500/10"
+                                                    >
+                                                        <XCircle className="h-3 w-3" />
+                                                        Refuser
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                                {restaurant.abonnement.numero_transaction && (
+                                    <div>
+                                        <label className="text-sm font-medium text-muted-foreground">Numéro de transaction</label>
+                                        <p className="text-lg font-mono">{restaurant.abonnement.numero_transaction}</p>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div>

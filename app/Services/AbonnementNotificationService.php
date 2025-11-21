@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Abonnement;
-use Carbon\Carbon;
 
 class AbonnementNotificationService
 {
@@ -59,10 +58,9 @@ class AbonnementNotificationService
     public function getNotificationsForRestaurant(int $restaurantId, int $daysBeforeExpiration = 7): array
     {
         $allNotifications = $this->getExpiringSubscriptions($daysBeforeExpiration);
-        
+
         return array_filter($allNotifications, function ($notification) use ($restaurantId) {
             return $notification['restaurant']->id === $restaurantId;
         });
     }
 }
-

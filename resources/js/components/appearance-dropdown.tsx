@@ -3,10 +3,12 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAppearance } from '@/hooks/use-appearance';
-import { Monitor, Moon, Sun } from 'lucide-react';
+import { Monitor, Moon, Palette, Sun } from 'lucide-react';
 import { HTMLAttributes } from 'react';
 
 export default function AppearanceToggleDropdown({
@@ -36,29 +38,44 @@ export default function AppearanceToggleDropdown({
                         className="h-9 w-9 rounded-md"
                     >
                         {getCurrentIcon()}
-                        <span className="sr-only">Toggle theme</span>
+                        <span className="sr-only">Changer le thème</span>
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => updateAppearance('light')}>
-                        <span className="flex items-center gap-2">
-                            <Sun className="h-5 w-5" />
-                            Light
-                        </span>
+                <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuLabel className="flex items-center gap-2">
+                        <Palette className="h-4 w-4" />
+                        Thème
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                        onClick={() => updateAppearance('light')}
+                        className="flex items-center gap-2 cursor-pointer"
+                    >
+                        <Sun className="h-4 w-4" />
+                        <span>Clair</span>
+                        {appearance === 'light' && (
+                            <span className="ml-auto text-xs">✓</span>
+                        )}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => updateAppearance('dark')}>
-                        <span className="flex items-center gap-2">
-                            <Moon className="h-5 w-5" />
-                            Dark
-                        </span>
+                    <DropdownMenuItem
+                        onClick={() => updateAppearance('dark')}
+                        className="flex items-center gap-2 cursor-pointer"
+                    >
+                        <Moon className="h-4 w-4" />
+                        <span>Sombre</span>
+                        {appearance === 'dark' && (
+                            <span className="ml-auto text-xs">✓</span>
+                        )}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         onClick={() => updateAppearance('system')}
+                        className="flex items-center gap-2 cursor-pointer"
                     >
-                        <span className="flex items-center gap-2">
-                            <Monitor className="h-5 w-5" />
-                            System
-                        </span>
+                        <Monitor className="h-4 w-4" />
+                        <span>Système</span>
+                        {appearance === 'system' && (
+                            <span className="ml-auto text-xs">✓</span>
+                        )}
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>

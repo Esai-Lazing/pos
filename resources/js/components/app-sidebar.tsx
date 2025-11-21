@@ -1,10 +1,11 @@
 import { NavFooter } from '@/components/nav-footer';
-import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
+    SidebarGroup,
+    SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
@@ -17,69 +18,110 @@ import * as rapportRoutes from '@/routes/rapports';
 import * as printerRoutes from '@/routes/printer';
 import * as userRoutes from '@/routes/user';
 import * as restaurantRoutes from '@/routes/restaurant';
-// import * as serveurRoutes from '@/routes/serveur';
-import { type NavItem, type SharedData } from '@/types';
+import * as subscriptionRoutes from '@/routes/subscription';
+import { type NavGroup, type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { HelpCircle, Info, History, LayoutGrid, Package, ShoppingCart, BarChart3, Printer as PrinterIcon, Users, Building2, UserPlus, Palette } from 'lucide-react';
+import {
+    HelpCircle,
+    Info,
+    History,
+    LayoutGrid,
+    Package,
+    ShoppingCart,
+    BarChart3,
+    Printer as PrinterIcon,
+    Users,
+    Building2,
+    Palette,
+    CreditCard,
+    Settings,
+    Store,
+} from 'lucide-react';
 import { useMemo } from 'react';
 import AppLogoIcon from './app-logo-icon';
+import { resolveUrl } from '@/lib/utils';
 
-const allNavItems: NavItem[] = [
+// Définition des sections de navigation
+const navigationSections: NavGroup[] = [
     {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-        roles: ['super-admin', 'admin', 'caisse', 'stock'], // Tous les rôles incluant super-admin
-    },
-    // Section Super Admin
-    {
-        title: 'Restaurants',
-        href: restaurantRoutes.index(),
-        icon: Building2,
-        roles: ['super-admin'], // Super-admin uniquement
-    },
-    // Section Admin / Caisse / Stock
-    {
-        title: 'Vente',
-        href: venteRoutes.create(),
-        icon: ShoppingCart,
-        roles: ['admin', 'caisse'], // Admin et Caisse
+        title: 'Vue d\'ensemble',
+        items: [
+            {
+                title: 'Dashboard',
+                href: dashboard(),
+                icon: LayoutGrid,
+                roles: ['super-admin', 'admin', 'caisse', 'stock'],
+            },
+        ],
     },
     {
-        title: 'Historique',
-        href: venteRoutes.index(),
-        icon: History,
-        roles: ['admin', 'caisse'], // Admin et Caisse
+        title: 'Gestion',
+        items: [
+            {
+                title: 'Restaurants',
+                href: restaurantRoutes.index(),
+                icon: Building2,
+                roles: ['super-admin'],
+            },
+        ],
     },
     {
-        title: 'Stock',
-        href: stockRoutes.index(),
-        icon: Package,
-        roles: ['admin', 'stock'], // Admin et Stock
+        title: 'Opérations',
+        items: [
+            {
+                title: 'Vente',
+                href: venteRoutes.create(),
+                icon: ShoppingCart,
+                roles: ['admin', 'caisse'],
+            },
+            {
+                title: 'Historique',
+                href: venteRoutes.index(),
+                icon: History,
+                roles: ['admin', 'caisse'],
+            },
+            {
+                title: 'Stock',
+                href: stockRoutes.index(),
+                icon: Package,
+                roles: ['admin', 'stock'],
+            },
+        ],
     },
     {
-        title: 'Rapports',
-        href: rapportRoutes.index(),
-        icon: BarChart3,
-        roles: ['admin'], // Admin uniquement
-    },
-    {
-        title: 'Imprimantes',
-        href: printerRoutes.index(),
-        icon: PrinterIcon,
-        roles: ['admin'], // Admin uniquement
-    },
-    {
-        title: 'Utilisateurs',
-        href: userRoutes.index(),
-        icon: Users,
-        roles: ['admin'], // Admin uniquement
-    },
-    {
-        title: 'Personnalisation',
-        href: '/restaurant/customization/edit',
-        icon: Palette,
-        roles: ['admin'], // Admin uniquement
+        title: 'Administration',
+        items: [
+            {
+                title: 'Rapports',
+                href: rapportRoutes.index(),
+                icon: BarChart3,
+                roles: ['admin'],
+            },
+            {
+                title: 'Imprimantes',
+                href: printerRoutes.index(),
+                icon: PrinterIcon,
+                roles: ['admin'],
+            },
+            {
+                title: 'Utilisateurs',
+                href: userRoutes.index(),
+                icon: Users,
+                roles: ['admin'],
+            },
+            {
+                title: 'Personnalisation',
+                href: '/restaurant/customization/edit',
+                icon: Palette,
+                roles: ['admin'],
+            },
+            {
+                title: 'Abonnement',
+                href: subscriptionRoutes.index(),
+                icon: CreditCard,
+                roles: ['admin'],
+            },
+        ],
     },
 ];
 
@@ -98,40 +140,62 @@ const footerNavItems: NavItem[] = [
 
 export function AppSidebar() {
     const { auth, restaurant } = usePage<SharedData>().props;
-    const userRole = auth.user?.role || 'caisse'; // Par défaut caisse si non défini
+    const userRole = auth.user?.role || 'caisse';
     const isSuperAdmin = userRole === 'super-admin';
+    const subscriptionLimitations = restaurant?.subscriptionLimitations;
+    const page = usePage();
 
-    // Filtrer les items selon le rôle de l'utilisateur
-    const mainNavItems = useMemo(() => {
-        return allNavItems.filter((item) => {
-            const itemRoles = item.roles || [];
-            return itemRoles.includes(userRole as 'super-admin' | 'admin' | 'caisse' | 'stock' | 'serveur');
-        });
-    }, [userRole]);
+    // Filtrer les sections selon le rôle et les limitations
+    const filteredSections = useMemo(() => {
+        return navigationSections
+            .map((section) => {
+                const filteredItems = section.items.filter((item) => {
+                    const itemRoles = item.roles || [];
+                    const hasRoleAccess = itemRoles.includes(
+                        userRole as 'super-admin' | 'admin' | 'caisse' | 'stock' | 'serveur'
+                    );
 
-    // Séparer les items pour le super-admin (gestion) et les autres (opérations)
-    const superAdminItems = useMemo(() => {
-        if (!isSuperAdmin) return [];
-        return mainNavItems.filter((item) => 
-            item.roles?.includes('super-admin') && item.title !== 'Dashboard'
-        );
-    }, [mainNavItems, isSuperAdmin]);
+                    if (!hasRoleAccess) {
+                        return false;
+                    }
 
-    const regularItems = useMemo(() => {
-        if (isSuperAdmin) {
-            // Pour le super-admin, ne montrer que le Dashboard
-            return mainNavItems.filter((item) => item.title === 'Dashboard');
-        }
-        return mainNavItems;
-    }, [mainNavItems, isSuperAdmin]);
+                    // Vérifier l'accès aux fonctionnalités selon l'abonnement
+                    if (item.title === 'Personnalisation') {
+                        if (isSuperAdmin) {
+                            return true;
+                        }
+                        return subscriptionLimitations?.personnalisation === true;
+                    }
+
+                    if (item.title === 'Rapports') {
+                        if (isSuperAdmin) {
+                            return true;
+                        }
+                        return subscriptionLimitations?.rapports === true;
+                    }
+
+                    return true;
+                });
+
+                // Ne retourner la section que si elle a des items
+                if (filteredItems.length === 0) {
+                    return null;
+                }
+
+                return {
+                    ...section,
+                    items: filteredItems,
+                };
+            })
+            .filter((section): section is NavGroup => section !== null);
+    }, [userRole, subscriptionLimitations, isSuperAdmin]);
 
     // Déterminer le nom et le logo à afficher
-    // Pour le super-admin, afficher "Pay way" au lieu du nom du restaurant
-    const restaurantName = isSuperAdmin 
-        ? 'Pay way' 
+    const restaurantName = isSuperAdmin
+        ? 'Pay way'
         : (restaurant?.customization?.nom || restaurant?.nom || 'Pay way');
-    const restaurantLogo = isSuperAdmin 
-        ? null 
+    const restaurantLogo = isSuperAdmin
+        ? null
         : (restaurant?.customization?.logo || null);
 
     return (
@@ -167,10 +231,30 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                {isSuperAdmin && superAdminItems.length > 0 && (
-                    <NavMain items={superAdminItems} label="Gestion" />
-                )}
-                <NavMain items={regularItems} label={isSuperAdmin ? 'Vue d\'ensemble' : 'Platform'} />
+                {filteredSections.map((section) => (
+                    <SidebarGroup key={section.title} className="px-2 py-0">
+                        <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+                        <SidebarMenu>
+                            {section.items.map((item) => {
+                                const isActive = page.url.startsWith(resolveUrl(item.href));
+                                return (
+                                    <SidebarMenuItem key={item.title}>
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={isActive}
+                                            tooltip={{ children: item.title }}
+                                        >
+                                            <Link href={item.href} prefetch>
+                                                {item.icon && <item.icon />}
+                                                <span>{item.title}</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                );
+                            })}
+                        </SidebarMenu>
+                    </SidebarGroup>
+                ))}
             </SidebarContent>
 
             <SidebarFooter>

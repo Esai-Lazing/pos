@@ -6,11 +6,11 @@ import { edit as editAppearance } from '@/routes/appearance';
 import { edit } from '@/routes/profile';
 import { show } from '@/routes/two-factor';
 import { edit as editPassword } from '@/routes/user-password';
-import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
-import { type PropsWithChildren } from 'react';
+import { type NavItem, type SharedData } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
+import { type PropsWithChildren, useMemo } from 'react';
 
-const sidebarNavItems: NavItem[] = [
+const allSidebarNavItems: NavItem[] = [
     {
         title: 'Profil',
         href: edit(),
@@ -25,15 +25,30 @@ const sidebarNavItems: NavItem[] = [
         title: 'Authentification à deux facteurs',
         href: show(),
         icon: null,
+        roles: ['admin', 'super-admin'],
     },
     {
         title: 'Apparence',
         href: editAppearance(),
         icon: null,
+        roles: ['admin', 'super-admin'],
     },
 ];
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
+    const { auth } = usePage<SharedData>().props;
+    const isAdmin = auth.user.role === 'admin' || auth.user.role === 'super-admin';
+
+    // Filtrer les liens selon le rôle de l'utilisateur
+    const sidebarNavItems = useMemo(() => {
+        return allSidebarNavItems.filter((item) => {
+            if (!item.roles) {
+                return true; // Afficher les liens sans restriction de rôle
+            }
+            return isAdmin; // Afficher les liens restreints uniquement pour les admins
+        });
+    }, [isAdmin]);
+
     // When server-side rendering, we only render the layout on the client...
     if (typeof window === 'undefined') {
         return null;

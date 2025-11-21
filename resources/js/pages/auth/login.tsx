@@ -40,76 +40,78 @@ export default function Login({
             >
                 {({ processing, errors }) => (
                     <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">{trans.auth('email')}</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
-                                />
-                                <InputError message={errors.email} />
-                            </div>
+                        <div className="w-full max-w-sm mx-auto">
+                                <div className="grid gap-6 w-full">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="email">{trans.auth('email')}</Label>
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            name="email"
+                                            required
+                                            autoFocus
+                                            tabIndex={1}
+                                            autoComplete="email"
+                                            placeholder="email@example.com"
+                                        />
+                                        <InputError message={errors.email} />
+                                    </div>
 
-                            <div className="grid gap-2">
-                                <div className="flex items-center">
-                                    <Label htmlFor="password">{trans.auth('password')}</Label>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
-                                        >
-                                            {trans.auth('forgot_password')}
-                                        </TextLink>
-                                    )}
+                                    <div className="grid gap-2">
+                                        <div className="flex items-center">
+                                            <Label htmlFor="password">{trans.auth('password')}</Label>
+                                            {canResetPassword && (
+                                                <TextLink
+                                                    href={request()}
+                                                    className="ml-auto text-sm"
+                                                    tabIndex={5}
+                                                >
+                                                    {trans.auth('forgot_password')}
+                                                </TextLink>
+                                            )}
+                                        </div>
+                                        <Input
+                                            id="password"
+                                            type="password"
+                                            name="password"
+                                            required
+                                            tabIndex={2}
+                                            autoComplete="current-password"
+                                            placeholder={trans.auth('password')}
+                                        />
+                                        <InputError message={errors.password} />
+                                    </div>
+
+                                    <div className="flex items-center space-x-3">
+                                        <Checkbox
+                                            id="remember"
+                                            name="remember"
+                                            tabIndex={3}
+                                        />
+                                        <Label htmlFor="remember">{trans.auth('remember_me')}</Label>
+                                    </div>
+
+                                    <Button
+                                        type="submit"
+                                        className="mt-4 w-full"
+                                        tabIndex={4}
+                                        disabled={processing}
+                                        data-test="login-button"
+                                    >
+                                        {processing && <Spinner />}
+                                        {trans.auth('login')}
+                                    </Button>
                                 </div>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    name="password"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="current-password"
-                                    placeholder={trans.auth('password')}
-                                />
-                                <InputError message={errors.password} />
-                            </div>
 
-                            <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
-                                <Label htmlFor="remember">{trans.auth('remember_me')}</Label>
-                            </div>
-
-                            <Button
-                                type="submit"
-                                className="mt-4 w-full"
-                                tabIndex={4}
-                                disabled={processing}
-                                data-test="login-button"
-                            >
-                                {processing && <Spinner />}
-                                {trans.auth('login')}
-                            </Button>
+                                {canRegister && (
+                                    <div className="text-center text-sm text-muted-foreground">
+                                        Vous n'avez pas de compte ?{' '}
+                                        <TextLink href={register()} tabIndex={5}>
+                                            {trans.auth('register')}
+                                        </TextLink>
+                                    </div>
+                                )}
                         </div>
-
-                        {canRegister && (
-                            <div className="text-center text-sm text-muted-foreground">
-                                Vous n'avez pas de compte ?{' '}
-                                <TextLink href={register()} tabIndex={5}>
-                                    {trans.auth('register')}
-                                </TextLink>
-                            </div>
-                        )}
                     </>
                 )}
             </Form>

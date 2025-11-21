@@ -1,7 +1,15 @@
 import AppLayout from '@/layouts/app-layout';
 import { useForm } from '@inertiajs/react';
-import { Upload, Save } from 'lucide-react';
+import { Upload, Save, Type, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { usePage } from '@inertiajs/react';
+import { type SharedData } from '@/types';
 
 interface RestaurantCustomization {
     id: number;
@@ -17,6 +25,13 @@ interface RestaurantCustomization {
     couleur_principale?: string;
     reseaux_sociaux?: Record<string, string>;
     horaires?: Record<string, any>;
+    primary_color?: string;
+    secondary_color?: string;
+    font_family?: string;
+    show_banner?: boolean;
+    banner_image?: string;
+    banner_url?: string;
+    custom_css?: Record<string, any>;
 }
 
 interface Props {
@@ -24,6 +39,8 @@ interface Props {
 }
 
 export default function RestaurantCustomization({ customization }: Props) {
+    const { restaurant } = usePage<SharedData>().props;
+
     const { data, setData, post, processing, errors } = useForm({
         logo: null as File | null,
         adresse: customization.adresse || '',
@@ -36,12 +53,14 @@ export default function RestaurantCustomization({ customization }: Props) {
         reseaux_sociaux: customization.reseaux_sociaux || {},
         horaires: customization.horaires || {},
         restaurant_id: customization.restaurant_id,
-        _method: 'PUT',
+        custom_css: customization.custom_css || {},
     });
+
 
     const [logoPreview, setLogoPreview] = useState<string | null>(
         customization.logo_url || (customization.logo ? `/storage/${customization.logo}` : null)
     );
+
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -55,8 +74,11 @@ export default function RestaurantCustomization({ customization }: Props) {
         }
     };
 
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Envoyer le formulaire - Inertia enverra automatiquement tous les champs de data
         post('/restaurant/customization', {
             forceFormData: true,
             preserveScroll: true,
@@ -65,184 +87,165 @@ export default function RestaurantCustomization({ customization }: Props) {
 
     return (
         <AppLayout>
-            <div className="space-y-6 p-4">
-                <div>
-                    <h1 className="text-3xl font-bold">Personnalisation de l'espace</h1>
-                    <p className="text-muted-foreground">Personnalisez l'apparence et les informations de votre restaurant</p>
+            <div className="space-y-6 p-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold flex items-center gap-2">
+                            <Sparkles className="h-8 w-8" />
+                            Personnalisation de l'espace
+                        </h1>
+                        <p className="text-muted-foreground mt-2">
+                            Personnalisez l'apparence et les informations de votre restaurant. Les modifications sont visibles en temps réel.
+                        </p>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6" encType="multipart/form-data">
-                    <div className="rounded-lg border border-border bg-card p-6">
-                        <h2 className="mb-4 text-xl font-semibold">Logo</h2>
-                        <div className="flex items-center gap-6">
-                            {logoPreview && (
-                                <img
-                                    src={logoPreview}
-                                    alt="Logo preview"
-                                    className="h-24 w-24 rounded-lg object-cover"
-                                />
-                            )}
-                            <div>
-                                <label
-                                    htmlFor="logo"
-                                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 hover:bg-muted"
-                                >
-                                    <Upload className="h-4 w-4" />
-                                    {logoPreview ? 'Changer le logo' : 'Télécharger un logo'}
-                                </label>
-                                <input
-                                    type="file"
-                                    id="logo"
-                                    name="logo"
-                                    accept="image/*"
-                                    onChange={handleLogoChange}
-                                    className="hidden"
-                                />
-                                {errors.logo && (
-                                    <p className="mt-1 text-sm text-destructive">{errors.logo}</p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="rounded-lg border border-border bg-card p-6">
-                        <h2 className="mb-4 text-xl font-semibold">Informations de base</h2>
-                        <div className="grid gap-6 md:grid-cols-2">
-                            <div>
-                                <label htmlFor="adresse" className="mb-2 block text-sm font-medium">
-                                    Adresse
-                                </label>
-                                <input
-                                    type="text"
-                                    id="adresse"
-                                    value={data.adresse}
-                                    onChange={(e) => setData('adresse', e.target.value)}
-                                    className="w-full rounded-lg border border-input bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
-                                {errors.adresse && (
-                                    <p className="mt-1 text-sm text-destructive">{errors.adresse}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label htmlFor="ville" className="mb-2 block text-sm font-medium">
-                                    Ville
-                                </label>
-                                <input
-                                    type="text"
-                                    id="ville"
-                                    value={data.ville}
-                                    onChange={(e) => setData('ville', e.target.value)}
-                                    className="w-full rounded-lg border border-input bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
-                                {errors.ville && (
-                                    <p className="mt-1 text-sm text-destructive">{errors.ville}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label htmlFor="pays" className="mb-2 block text-sm font-medium">
-                                    Pays
-                                </label>
-                                <input
-                                    type="text"
-                                    id="pays"
-                                    value={data.pays}
-                                    onChange={(e) => setData('pays', e.target.value)}
-                                    className="w-full rounded-lg border border-input bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
-                                {errors.pays && (
-                                    <p className="mt-1 text-sm text-destructive">{errors.pays}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label htmlFor="code_postal" className="mb-2 block text-sm font-medium">
-                                    Code postal
-                                </label>
-                                <input
-                                    type="text"
-                                    id="code_postal"
-                                    value={data.code_postal}
-                                    onChange={(e) => setData('code_postal', e.target.value)}
-                                    className="w-full rounded-lg border border-input bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
-                                {errors.code_postal && (
-                                    <p className="mt-1 text-sm text-destructive">{errors.code_postal}</p>
-                                )}
-                            </div>
-
-                            <div className="md:col-span-2">
-                                <label htmlFor="description" className="mb-2 block text-sm font-medium">
-                                    Description
-                                </label>
-                                <textarea
-                                    id="description"
-                                    value={data.description}
-                                    onChange={(e) => setData('description', e.target.value)}
-                                    rows={4}
-                                    className="w-full rounded-lg border border-input bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
-                                {errors.description && (
-                                    <p className="mt-1 text-sm text-destructive">{errors.description}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label htmlFor="site_web" className="mb-2 block text-sm font-medium">
-                                    Site web
-                                </label>
-                                <input
-                                    type="url"
-                                    id="site_web"
-                                    value={data.site_web}
-                                    onChange={(e) => setData('site_web', e.target.value)}
-                                    className="w-full rounded-lg border border-input bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
-                                {errors.site_web && (
-                                    <p className="mt-1 text-sm text-destructive">{errors.site_web}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label htmlFor="couleur_principale" className="mb-2 block text-sm font-medium">
-                                    Couleur principale
-                                </label>
+                    {/* Identité visuelle */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <ImageIcon className="h-5 w-5" />
+                                Identité visuelle
+                            </CardTitle>
+                            <CardDescription>
+                                Logo de votre restaurant
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="logo">Logo</Label>
                                 <div className="flex items-center gap-4">
-                                    <input
-                                        type="color"
-                                        id="couleur_principale"
-                                        value={data.couleur_principale}
-                                        onChange={(e) => setData('couleur_principale', e.target.value)}
-                                        className="h-10 w-20 cursor-pointer rounded-lg border border-input"
+                                    {logoPreview && (
+                                        <img
+                                            src={logoPreview}
+                                            alt="Logo preview"
+                                            className="h-20 w-20 rounded-lg object-cover border border-border"
+                                        />
+                                    )}
+                                    <Label
+                                        htmlFor="logo"
+                                        className="cursor-pointer"
+                                    >
+                                        <Button type="button" variant="outline" asChild>
+                                            <span>
+                                                <Upload className="h-4 w-4 mr-2" />
+                                                {logoPreview ? 'Changer' : 'Télécharger'}
+                                            </span>
+                                        </Button>
+                                        <input
+                                            type="file"
+                                            id="logo"
+                                            name="logo"
+                                            accept="image/*"
+                                            onChange={handleLogoChange}
+                                            className="hidden"
+                                        />
+                                    </Label>
+                                </div>
+                                {errors.logo && (
+                                    <p className="text-sm text-destructive">{errors.logo}</p>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Informations */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Type className="h-5 w-5" />
+                                Informations du restaurant
+                            </CardTitle>
+                            <CardDescription>
+                                Coordonnées et description de votre établissement
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="grid gap-6 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="adresse">Adresse</Label>
+                                    <Input
+                                        id="adresse"
+                                        value={data.adresse}
+                                        onChange={(e) => setData('adresse', e.target.value)}
+                                        placeholder="123 Rue Example"
                                     />
-                                    <input
-                                        type="text"
-                                        value={data.couleur_principale}
-                                        onChange={(e) => setData('couleur_principale', e.target.value)}
-                                        className="w-full rounded-lg border border-input bg-background px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                                    {errors.adresse && (
+                                        <p className="text-sm text-destructive">{errors.adresse}</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="ville">Ville</Label>
+                                    <Input
+                                        id="ville"
+                                        value={data.ville}
+                                        onChange={(e) => setData('ville', e.target.value)}
+                                        placeholder="Kinshasa"
                                     />
                                 </div>
-                                {errors.couleur_principale && (
-                                    <p className="mt-1 text-sm text-destructive">{errors.couleur_principale}</p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
 
-                    <div className="flex gap-4">
-                        <button
+                                <div className="space-y-2">
+                                    <Label htmlFor="pays">Pays</Label>
+                                    <Input
+                                        id="pays"
+                                        value={data.pays}
+                                        onChange={(e) => setData('pays', e.target.value)}
+                                        placeholder="RD Congo"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="code_postal">Code postal</Label>
+                                    <Input
+                                        id="code_postal"
+                                        value={data.code_postal}
+                                        onChange={(e) => setData('code_postal', e.target.value)}
+                                        placeholder="00000"
+                                    />
+                                </div>
+
+                                <div className="md:col-span-2 space-y-2">
+                                    <Label htmlFor="description">Description</Label>
+                                    <Textarea
+                                        id="description"
+                                        value={data.description}
+                                        onChange={(e) => setData('description', e.target.value)}
+                                        rows={4}
+                                        placeholder="Décrivez votre restaurant..."
+                                    />
+                                </div>
+
+                                <div className="md:col-span-2 space-y-2">
+                                    <Label htmlFor="site_web">Site web</Label>
+                                    <Input
+                                        id="site_web"
+                                        type="url"
+                                        value={data.site_web}
+                                        onChange={(e) => setData('site_web', e.target.value)}
+                                        placeholder="https://example.com"
+                                    />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Separator />
+
+                    <div className="flex justify-end gap-4">
+                        <Button
                             type="submit"
                             disabled={processing}
-                            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                            size="lg"
+                            className="min-w-[200px]"
                         >
-                            <Save className="h-4 w-4" />
-                            {processing ? 'Enregistrement...' : 'Enregistrer'}
-                        </button>
+                            <Save className="h-4 w-4 mr-2" />
+                            {processing ? 'Enregistrement...' : 'Enregistrer les modifications'}
+                        </Button>
                     </div>
                 </form>
             </div>
         </AppLayout>
     );
 }
-

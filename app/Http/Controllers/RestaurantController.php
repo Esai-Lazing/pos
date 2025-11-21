@@ -27,12 +27,21 @@ class RestaurantController extends Controller
 
         $restaurants = $query->latest()->paginate(20);
 
+        // Compter les paiements en attente pour le super admin
+        $pendingPayments = 0;
+        if ($request->user()->isSuperAdmin()) {
+            $pendingPayments = Abonnement::where('mode_paiement', 'espece')
+                ->where('statut_paiement', 'en_attente')
+                ->count();
+        }
+
         // Préserver le paramètre deleted dans les liens de pagination
         $restaurants->appends($request->only('deleted'));
 
         return Inertia::render('Restaurant/Index', [
             'restaurants' => $restaurants,
             'showDeleted' => $showDeleted,
+            'pendingPayments' => $pendingPayments ?? 0,
         ]);
     }
 
@@ -91,7 +100,7 @@ class RestaurantController extends Controller
         $lowercase = strtolower(Str::random(2));
         $numbers2 = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
         $password = $uppercase.$numbers1.$lowercase.$numbers2;
-        
+
         // Créer un utilisateur admin pour le restaurant
         $admin = User::create([
             'name' => 'Administrateur '.$restaurant->nom,
@@ -124,6 +133,7 @@ class RestaurantController extends Controller
 
         return Inertia::render('Restaurant/Show', [
             'restaurant' => $restaurant,
+            'isSuperAdmin' => $request->user()->isSuperAdmin(),
         ]);
     }
 

@@ -1,7 +1,7 @@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { usePage } from '@inertiajs/react';
 import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { type SharedData } from '@/types';
 
 type FlashType = 'success' | 'error' | 'warning' | 'info';
@@ -46,9 +46,8 @@ function FlashMessage({ type, message, onClose }: FlashMessageProps) {
 
     return (
         <div
-            className={`transition-all duration-300 ${
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
-            }`}
+            className={`transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
+                }`}
         >
             <Alert className={`${colors[type]} relative pr-10`}>
                 <Icon className="h-4 w-4" />
@@ -71,41 +70,68 @@ export default function FlashMessages() {
     const page = usePage<SharedData>();
     const { flash, errors } = page.props;
     const [messages, setMessages] = useState<Array<{ id: string; type: FlashType; message: string }>>([]);
+    const messageIdCounter = useRef(0);
+    const processedFlashRef = useRef<{
+        success?: string | null;
+        error?: string | null;
+        warning?: string | null;
+        info?: string | null;
+    }>({});
 
     useEffect(() => {
         const newMessages: Array<{ id: string; type: FlashType; message: string }> = [];
 
-        if (flash?.success) {
+        // Générer un ID unique pour chaque message
+        const generateUniqueId = (prefix: string) => {
+            messageIdCounter.current += 1;
+            return `${prefix}-${Date.now()}-${messageIdCounter.current}-${Math.random().toString(36).substr(2, 9)}`;
+        };
+
+        // Vérifier si le message flash a changé avant de l'ajouter
+        if (flash?.success && flash.success !== processedFlashRef.current.success) {
+            processedFlashRef.current.success = flash.success;
             newMessages.push({
-                id: `success-${Date.now()}`,
+                id: generateUniqueId('success'),
                 type: 'success',
                 message: flash.success,
             });
         }
 
-        if (flash?.error) {
-            newMessages.push({
-                id: `error-${Date.now()}`,
-                type: 'error',
-                message: flash.error,
-            });
+        if (flash?.error && flash.error !== processedFlashRef.current.error) {
+            processedFlashRef.current.error = flash.error;
+            // Ne pas afficher le toast si c'est un message d'abonnement expiré (le dialog le gère)
+            if (!flash.subscription_expired && !flash.error.includes('abonnement a expiré')) {
+                newMessages.push({
+                    id: generateUniqueId('error'),
+                    type: 'error',
+                    message: flash.error,
+                });
+            }
         }
 
-        if (flash?.warning) {
+        if (flash?.warning && flash.warning !== processedFlashRef.current.warning) {
+            processedFlashRef.current.warning = flash.warning;
             newMessages.push({
-                id: `warning-${Date.now()}`,
+                id: generateUniqueId('warning'),
                 type: 'warning',
                 message: flash.warning,
             });
         }
 
-        if (flash?.info) {
+        if (flash?.info && flash.info !== processedFlashRef.current.info) {
+            processedFlashRef.current.info = flash.info;
             newMessages.push({
-                id: `info-${Date.now()}`,
+                id: generateUniqueId('info'),
                 type: 'info',
                 message: flash.info,
             });
         }
+
+        // Réinitialiser les références si les flash messages sont null
+        if (flash?.success === null) processedFlashRef.current.success = null;
+        if (flash?.error === null) processedFlashRef.current.error = null;
+        if (flash?.warning === null) processedFlashRef.current.warning = null;
+        if (flash?.info === null) processedFlashRef.current.info = null;
 
         // Afficher les erreurs de validation si présentes
         if (errors && Object.keys(errors).length > 0) {
@@ -113,7 +139,7 @@ export default function FlashMessages() {
             errorMessages.forEach((error) => {
                 if (typeof error === 'string') {
                     newMessages.push({
-                        id: `error-${Date.now()}-${Math.random()}`,
+                        id: generateUniqueId('error-validation'),
                         type: 'error',
                         message: error,
                     });

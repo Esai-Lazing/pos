@@ -2,23 +2,44 @@ import AppLayout from '@/layouts/app-layout';
 import * as rapport from '@/routes/rapports';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { BarChart3, DollarSign, Package, TrendingUp, TrendingDown } from 'lucide-react';
-import { useState } from 'react';
 import {
     BarChart,
-    Bar,
-    LineChart,
-    Line,
-    PieChart,
-    Pie,
-    Cell,
-    XAxis,
-    YAxis,
+    CreditCard,
+    DollarSign,
+    Package,
+    ShoppingCart,
+    TrendingDown,
+    TrendingUp,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
+    Area,
+    AreaChart,
     CartesianGrid,
-    Tooltip,
-    Legend,
-    ResponsiveContainer,
+    XAxis,
 } from 'recharts';
+import {
+    ChartConfig,
+    ChartContainer,
+    ChartLegend,
+    ChartLegendContent,
+    ChartTooltip,
+    ChartTooltipContent,
+} from '@/components/ui/chart';
 
 interface Props {
     periode: string;
@@ -67,17 +88,6 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
-
-const getModePaiementLabel = (mode: string): string => {
-    const labels: Record<string, string> = {
-        fc: 'Franc Congolais',
-        usd: 'Dollar US',
-        mixte: 'Mixte',
-    };
-    return labels[mode] || mode;
-};
-
 export default function RapportIndex({
     periode,
     date_debut,
@@ -89,283 +99,447 @@ export default function RapportIndex({
     ventes_par_mode_paiement,
 }: Props) {
     const [selectedPeriode, setSelectedPeriode] = useState(periode);
+    const [activeChart, setActiveChart] = useState<keyof typeof chartConfig>('ventes_fc');
 
     const handlePeriodeChange = (newPeriode: string) => {
         setSelectedPeriode(newPeriode);
         router.get(rapport.index().url, { periode: newPeriode }, { preserveState: true });
     };
 
-    // Préparer les données pour les graphiques
-    const chartData = ventes_par_jour.map((jour) => ({
-        date: new Date(jour.date).toLocaleDateString('fr-FR', {
-            day: '2-digit',
-            month: '2-digit',
-        }),
-        ventes: Number(jour.total_fc),
-        nombre: jour.nombre,
-    }));
+    // Configuration du graphique
+    const chartConfig = {
+        ventes_fc: {
+            label: 'Ventes (FC)',
+            color: 'var(--chart-1)',
+        },
+        ventes_usd: {
+            label: 'Ventes (USD)',
+            color: 'var(--chart-2)',
+        },
+        nombre: {
+            label: 'Nombre de ventes',
+            color: 'var(--chart-3)',
+        },
+    } satisfies ChartConfig;
 
-    const produitsChartData = produits_vendus.slice(0, 8).map((item) => ({
-        nom: item.produit.nom,
-        quantite: item.quantite,
-        total: Number(item.total_fc),
-    }));
+    // Données formatées pour le graphique principal
+    const chartData = useMemo(() => {
+        return ventes_par_jour.map((jour) => ({
+            date: jour.date,
+            ventes_fc: Number(jour.total_fc),
+            ventes_usd: Number(jour.total_usd),
+            nombre: jour.nombre,
+        }));
+    }, [ventes_par_jour]);
 
-    const modePaiementData = ventes_par_mode_paiement?.map((item) => ({
-        name: getModePaiementLabel(item.mode),
-        value: Number(item.total_fc),
-        nombre: item.nombre,
-    })) || [];
+    // Données pour le graphique par heure
+    const heureChartData = useMemo(() => {
+        if (!ventes_par_heure || ventes_par_heure.length === 0) return [];
+        return ventes_par_heure.map((item) => ({
+            heure: item.heure,
+            ventes: Number(item.total_fc),
+        }));
+    }, [ventes_par_heure]);
 
-    const heureChartData = ventes_par_heure?.map((item) => ({
-        heure: item.heure,
-        ventes: Number(item.total_fc),
-        nombre: item.nombre,
-    })) || [];
+    // Calcul des totaux pour l'affichage dynamique
+    const totals = useMemo(() => ({
+        ventes_fc: statistiques.total_ventes_fc,
+        ventes_usd: statistiques.total_ventes_usd,
+        nombre: statistiques.nombre_ventes,
+    }), [statistiques]);
+
+    // Calcul du panier moyen
+    const panierMoyen = useMemo(() => {
+        return statistiques.nombre_ventes > 0
+            ? statistiques.total_ventes_fc / statistiques.nombre_ventes
+            : 0;
+    }, [statistiques]);
+
+    // Données pour l'Area Chart (Modes de paiement)
+    const paiementChartData = useMemo(() => {
+        if (!ventes_par_mode_paiement) return [];
+        return ventes_par_mode_paiement.map((item) => ({
+            name: item.mode,
+            value: Number(item.total_fc),
+        }));
+    }, [ventes_par_mode_paiement]);
+
+    // Données pour l'Area Chart (Top 5 Produits)
+    const topProduitsData = useMemo(() => {
+        return produits_vendus.slice(0, 5).map((item) => ({
+            nom: item.produit.nom.length > 15 ? item.produit.nom.substring(0, 15) + '...' : item.produit.nom,
+            total: Number(item.total_fc),
+        }));
+    }, [produits_vendus]);
+
+    // Formatage des valeurs selon le type
+    const formatValue = (value: number, chart: keyof typeof chartConfig) => {
+        if (chart === 'ventes_fc') return `${value.toLocaleString('fr-CD')} FC`;
+        if (chart === 'ventes_usd') return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return value.toString();
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Rapports" />
             <div className="flex flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold">Rapports</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
                         <p className="text-muted-foreground">
-                            {new Date(date_debut).toLocaleDateString('fr-FR')} -{' '}
-                            {new Date(date_fin).toLocaleDateString('fr-FR')}
+                            Aperçu des performances du {new Date(date_debut).toLocaleDateString('fr-FR')} au {new Date(date_fin).toLocaleDateString('fr-FR')}
                         </p>
                     </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => handlePeriodeChange('jour')}
-                            className={`rounded-lg px-4 py-2 transition-colors ${
-                                selectedPeriode === 'jour'
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                            }`}
-                        >
-                            Jour
-                        </button>
-                        <button
-                            onClick={() => handlePeriodeChange('semaine')}
-                            className={`rounded-lg px-4 py-2 transition-colors ${
-                                selectedPeriode === 'semaine'
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                            }`}
-                        >
-                            Semaine
-                        </button>
-                        <button
-                            onClick={() => handlePeriodeChange('mois')}
-                            className={`rounded-lg px-4 py-2 transition-colors ${
-                                selectedPeriode === 'mois'
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                            }`}
-                        >
-                            Mois
-                        </button>
+                    <div className="flex items-center gap-2">
+                        <Select value={selectedPeriode} onValueChange={handlePeriodeChange}>
+                            <SelectTrigger className="w-[160px]">
+                                <SelectValue placeholder="Période" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="jour">Aujourd'hui</SelectItem>
+                                <SelectItem value="semaine">Cette semaine</SelectItem>
+                                <SelectItem value="mois">Ce mois</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
 
-                {/* Statistiques générales */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-lg border border-border bg-card p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="text-sm text-muted-foreground">Ventes FC</div>
-                                <div className="text-2xl font-bold">
-                                    {statistiques.total_ventes_fc.toLocaleString('fr-CD')} FC
+                {/* Grille principale du tableau de bord */}
+                <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+
+                    {/* KPI 1: Ventes FC */}
+                    <Card className="border-none shadow-md bg-gradient-to-br from-card to-muted/20 col-span-1">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Ventes Totales (FC)</CardTitle>
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{statistiques.total_ventes_fc.toLocaleString('fr-CD')} FC</div>
+                            {statistiques.variation !== undefined && (
+                                <div className={`flex items-center text-xs ${statistiques.variation >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {statistiques.variation >= 0 ? <TrendingUp className="mr-1 h-4 w-4" /> : <TrendingDown className="mr-1 h-4 w-4" />}
+                                    {Math.abs(statistiques.variation).toFixed(1)}% vs préc.
                                 </div>
-                                {statistiques.variation !== undefined && (
-                                    <div
-                                        className={`mt-2 flex items-center gap-1 text-sm ${
-                                            statistiques.variation >= 0 ? 'text-green-500' : 'text-red-500'
-                                        }`}
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* KPI 2: Ventes USD */}
+                    <Card className="border-none shadow-md bg-gradient-to-br from-card to-muted/20 col-span-1">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Ventes Totales (USD)</CardTitle>
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">${statistiques.total_ventes_usd.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                            <p className="text-xs text-muted-foreground">Revenu en devises</p>
+                        </CardContent>
+                    </Card>
+
+                    {/* KPI 3: Transactions */}
+                    <Card className="border-none shadow-md bg-gradient-to-br from-card to-muted/20 col-span-1">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Transactions</CardTitle>
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{statistiques.nombre_ventes}</div>
+                            <p className="text-xs text-muted-foreground">Nombre total de ventes</p>
+                        </CardContent>
+                    </Card>
+
+                    {/* KPI 4: Panier Moyen */}
+                    <Card className="border-none shadow-md bg-gradient-to-br from-card to-muted/20 col-span-1">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Panier Moyen</CardTitle>
+                            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{panierMoyen.toLocaleString('fr-CD')} FC</div>
+                            <p className="text-xs text-muted-foreground">Moyenne par transaction</p>
+                        </CardContent>
+                    </Card>
+
+                    {/* KPI 5: Bénéfice Estimé - Prend 2 colonnes sur mobile/tablette pour équilibrer, 1 sur desktop ou s'aligne */}
+                    <Card className="border-none shadow-md bg-gradient-to-br from-card to-muted/20 col-span-1 md:col-span-2 lg:col-span-1">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Bénéfice Estimé (FC)</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-primary">{statistiques.total_benefice_fc.toLocaleString('fr-CD')} FC</div>
+                            <p className="text-xs text-muted-foreground">Marge brute estimée</p>
+                        </CardContent>
+                    </Card>
+
+                    {/* Graphique Principal - Evolution */}
+                    {/* MD: Full width (3 cols), LG: 3 cols (next to KPI 5? No, new row usually better but let's try layout flow) */}
+                    {/* Let's make it span full width on MD, and 3 cols on LG to sit next to something? Or full width.
+                        Given the requested grid, let's make it prominent. col-span-full is safest for Main Chart.
+                    */}
+                    <Card className="shadow-md col-span-full lg:col-span-3 lg:row-span-2">
+                        <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
+                            <div className="grid flex-1 gap-1">
+                                <CardTitle>Évolution de l'activité</CardTitle>
+                                <CardDescription>
+                                    Aperçu détaillé des {chartConfig[activeChart].label.toLowerCase()}
+                                </CardDescription>
+                            </div>
+                            <Select value={activeChart} onValueChange={(val) => setActiveChart(val as keyof typeof chartConfig)}>
+                                <SelectTrigger className="w-[180px] rounded-lg sm:ml-auto" aria-label="Choisir une métrique">
+                                    <SelectValue placeholder="Métrique" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                    <SelectItem value="ventes_fc" className="rounded-lg">Ventes (FC)</SelectItem>
+                                    <SelectItem value="ventes_usd" className="rounded-lg">Ventes (USD)</SelectItem>
+                                    <SelectItem value="nombre" className="rounded-lg">Nombre de ventes</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </CardHeader>
+                        <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+                            {chartData.length > 0 ? (
+                                <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                                    <AreaChart
+                                        accessibilityLayer
+                                        data={chartData}
+                                        margin={{
+                                            left: 12,
+                                            right: 12,
+                                        }}
                                     >
-                                        {statistiques.variation >= 0 ? (
-                                            <TrendingUp className="h-4 w-4" />
-                                        ) : (
-                                            <TrendingDown className="h-4 w-4" />
-                                        )}
-                                        <span>{Math.abs(statistiques.variation).toFixed(1)}%</span>
-                                        <span className="text-muted-foreground">vs période précédente</span>
-                                    </div>
-                                )}
-                            </div>
-                            <DollarSign className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                    </div>
-
-                    <div className="rounded-lg border border-border bg-card p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="text-sm text-muted-foreground">Ventes USD</div>
-                                <div className="text-2xl font-bold">${statistiques.total_ventes_usd.toFixed(2)}</div>
-                            </div>
-                            <DollarSign className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                    </div>
-
-                    <div className="rounded-lg border border-border bg-card p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="text-sm text-muted-foreground">Nombre de ventes</div>
-                                <div className="text-2xl font-bold">{statistiques.nombre_ventes}</div>
-                            </div>
-                            <Package className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                    </div>
-
-                    <div className="rounded-lg border border-border bg-card p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="text-sm text-muted-foreground">Bénéfice FC</div>
-                                <div className="text-2xl font-bold">
-                                    {statistiques.total_benefice_fc.toLocaleString('fr-CD')} FC
+                                        <CartesianGrid vertical={false} />
+                                        <XAxis
+                                            dataKey="date"
+                                            tickLine={false}
+                                            axisLine={false}
+                                            tickMargin={8}
+                                            minTickGap={32}
+                                            tickFormatter={(value) => {
+                                                const date = new Date(value);
+                                                return date.toLocaleDateString('fr-FR', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                });
+                                            }}
+                                        />
+                                        <ChartTooltip
+                                            cursor={false}
+                                            content={
+                                                <ChartTooltipContent
+                                                    indicator="line"
+                                                    labelFormatter={(value) => {
+                                                        return new Date(value).toLocaleDateString('fr-FR', {
+                                                            weekday: 'long',
+                                                            day: 'numeric',
+                                                            month: 'long',
+                                                            year: 'numeric'
+                                                        });
+                                                    }}
+                                                />
+                                            }
+                                        />
+                                        <Area
+                                            dataKey={activeChart}
+                                            type="natural"
+                                            fill={chartConfig[activeChart].color}
+                                            fillOpacity={0.4}
+                                            stroke={chartConfig[activeChart].color}
+                                            stackId="a"
+                                        />
+                                        <ChartLegend content={<ChartLegendContent />} />
+                                    </AreaChart>
+                                </ChartContainer>
+                            ) : (
+                                <div className="flex h-[350px] items-center justify-center text-muted-foreground">
+                                    Aucune donnée disponible pour cette période
                                 </div>
-                            </div>
-                            <TrendingUp className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                    </div>
-                </div>
+                            )}
+                        </CardContent>
+                    </Card>
 
-                {/* Graphiques */}
-                <div className="grid gap-6 lg:grid-cols-2">
-                    {/* Graphique des ventes par jour */}
-                    <div className="rounded-lg border border-border bg-card p-6">
-                        <h2 className="mb-4 text-lg font-semibold">Évolution des ventes</h2>
-                        {chartData.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={chartData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="date" />
-                                    <YAxis />
-                                    <Tooltip
-                                        formatter={(value: number) => [`${value.toLocaleString('fr-CD')} FC`, 'Ventes']}
+                    {/* Répartition par mode de paiement */}
+                    {/* MD: 1 col, LG: 1 col. Sits next to Main Chart on LG? */}
+                    <Card className="shadow-md col-span-1 md:col-span-1 lg:col-span-1">
+                        <CardHeader>
+                            <CardTitle>Paiements</CardTitle>
+                            <CardDescription>Répartition</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer
+                                config={{
+                                    fc: { label: 'Franc Congolais', color: 'var(--chart-1)' },
+                                    usd: { label: 'Dollar US', color: 'var(--chart-2)' },
+                                    mixte: { label: 'Mixte', color: 'var(--chart-3)' },
+                                }}
+                                className="h-[300px] w-full"
+                            >
+                                <AreaChart
+                                    accessibilityLayer
+                                    data={paiementChartData}
+                                    margin={{ left: 12, right: 12 }}
+                                >
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis
+                                        dataKey="name"
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickMargin={8}
+                                        interval={0}
+                                        angle={-45}
+                                        textAnchor="end"
+                                        height={60}
                                     />
-                                    <Legend />
-                                    <Line type="monotone" dataKey="ventes" stroke="#3b82f6" strokeWidth={2} name="Ventes (FC)" />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-                                Aucune donnée disponible
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Graphique des ventes par heure (si période = jour) */}
-                    {periode === 'jour' && heureChartData.length > 0 && (
-                        <div className="rounded-lg border border-border bg-card p-6">
-                            <h2 className="mb-4 text-lg font-semibold">Ventes par heure</h2>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={heureChartData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="heure" />
-                                    <YAxis />
-                                    <Tooltip
-                                        formatter={(value: number) => [`${value.toLocaleString('fr-CD')} FC`, 'Ventes']}
+                                    <ChartTooltip
+                                        cursor={false}
+                                        content={<ChartTooltipContent indicator="dot" />}
                                     />
-                                    <Legend />
-                                    <Bar dataKey="ventes" fill="#10b981" name="Ventes (FC)" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    )}
-
-                    {/* Graphique des produits les plus vendus */}
-                    <div className="rounded-lg border border-border bg-card p-6">
-                        <h2 className="mb-4 text-lg font-semibold">Produits les plus vendus</h2>
-                        {produitsChartData.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={produitsChartData} layout="vertical">
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis type="number" />
-                                    <YAxis dataKey="nom" type="category" width={100} />
-                                    <Tooltip
-                                        formatter={(value: number) => [`${value.toLocaleString('fr-CD')} FC`, 'Total']}
-                                    />
-                                    <Legend />
-                                    <Bar dataKey="total" fill="#3b82f6" name="Total (FC)" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-                                Aucune donnée disponible
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Graphique des modes de paiement */}
-                    {modePaiementData.length > 0 && (
-                        <div className="rounded-lg border border-border bg-card p-6">
-                            <h2 className="mb-4 text-lg font-semibold">Répartition par mode de paiement</h2>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={modePaiementData}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                                        outerRadius={80}
-                                        fill="#8884d8"
+                                    <Area
                                         dataKey="value"
-                                    >
-                                        {modePaiementData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip
-                                        formatter={(value: number) => [`${value.toLocaleString('fr-CD')} FC`, 'Montant']}
+                                        type="natural"
+                                        fill="var(--chart-1)"
+                                        fillOpacity={0.4}
+                                        stroke="var(--chart-1)"
+                                        stackId="a"
                                     />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
-                    )}
-                </div>
+                                </AreaChart>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
 
-                {/* Tableau des produits les plus vendus */}
-                <div className="rounded-lg border border-border bg-card p-6">
-                    <h2 className="mb-4 text-lg font-semibold">Détails des produits les plus vendus</h2>
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-border">
-                                    <th className="px-4 py-3 text-left text-sm font-semibold">#</th>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold">Produit</th>
-                                    <th className="px-4 py-3 text-right text-sm font-semibold">Quantité</th>
-                                    <th className="px-4 py-3 text-right text-sm font-semibold">Total FC</th>
-                                    <th className="px-4 py-3 text-right text-sm font-semibold">Total USD</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {produits_vendus.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                                            Aucun produit vendu
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    produits_vendus.map((item, index) => (
-                                        <tr key={item.produit.id} className="border-b border-border hover:bg-muted/50">
-                                            <td className="px-4 py-3 text-muted-foreground">{index + 1}</td>
-                                            <td className="px-4 py-3 font-medium">{item.produit.nom}</td>
-                                            <td className="px-4 py-3 text-right">{item.quantite}</td>
-                                            <td className="px-4 py-3 text-right font-semibold">
-                                                {item.total_fc.toLocaleString('fr-CD')} FC
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-muted-foreground">
-                                                ${item.total_usd.toFixed(2)}
-                                            </td>
+                    {/* Top 5 Produits */}
+                    {/* MD: 2 cols, LG: 2 cols. */}
+                    <Card className="shadow-md col-span-1 md:col-span-2 lg:col-span-2">
+                        <CardHeader>
+                            <CardTitle>Top 5 Produits</CardTitle>
+                            <CardDescription>Tendances des meilleures ventes</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer
+                                config={{
+                                    total: { label: 'Ventes (FC)', color: 'var(--chart-2)' }
+                                }}
+                                className="h-[300px] w-full"
+                            >
+                                <AreaChart
+                                    accessibilityLayer
+                                    data={topProduitsData}
+                                    margin={{ left: 12, right: 12 }}
+                                >
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis
+                                        dataKey="nom"
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickMargin={8}
+                                        tickFormatter={(value) => value.substring(0, 10) + (value.length > 10 ? '...' : '')}
+                                    />
+                                    <ChartTooltip
+                                        cursor={false}
+                                        content={<ChartTooltipContent indicator="line" />}
+                                    />
+                                    <Area
+                                        dataKey="total"
+                                        type="natural"
+                                        fill="var(--chart-2)"
+                                        fillOpacity={0.4}
+                                        stroke="var(--chart-2)"
+                                    />
+                                </AreaChart>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
+
+                    {/* Graphiques secondaires (Heure) si disponible */}
+                    {periode === 'jour' && heureChartData.length > 0 && (
+                        <Card className="shadow-md col-span-full md:col-span-3 lg:col-span-2">
+                            <CardHeader>
+                                <CardTitle>Distribution horaire</CardTitle>
+                                <CardDescription>Activité par heure de la journée</CardDescription>
+                            </CardHeader>
+                            <CardContent className="px-2 sm:px-6">
+                                <ChartContainer
+                                    config={{
+                                        ventes: { label: 'Ventes (FC)', color: 'var(--chart-4)' }
+                                    }}
+                                    className="aspect-auto h-[250px] w-full"
+                                >
+                                    <AreaChart data={heureChartData} margin={{ left: 12, right: 12 }}>
+                                        <defs>
+                                            <linearGradient id="fillHeure" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="var(--chart-4)" stopOpacity={0.8} />
+                                                <stop offset="95%" stopColor="var(--chart-4)" stopOpacity={0.1} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                                        <XAxis
+                                            dataKey="heure"
+                                            tickLine={false}
+                                            axisLine={false}
+                                            tickMargin={8}
+                                            minTickGap={32}
+                                        />
+                                        <ChartTooltip
+                                            cursor={false}
+                                            content={<ChartTooltipContent indicator="line" />}
+                                        />
+                                        <Area
+                                            dataKey="ventes"
+                                            type="step"
+                                            fill="url(#fillHeure)"
+                                            stroke="var(--chart-4)"
+                                            strokeWidth={2}
+                                        />
+                                    </AreaChart>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Tableau des produits */}
+                    <Card className="shadow-md col-span-full">
+                        <CardHeader>
+                            <CardTitle>Détails des produits</CardTitle>
+                            <CardDescription>Liste complète des performances produits</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-border">
+                                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Rang</th>
+                                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Produit</th>
+                                            <th className="px-4 py-3 text-right font-medium text-muted-foreground">Quantité</th>
+                                            <th className="px-4 py-3 text-right font-medium text-muted-foreground">CA (FC)</th>
+                                            <th className="px-4 py-3 text-right font-medium text-muted-foreground">CA (USD)</th>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                    </thead>
+                                    <tbody>
+                                        {produits_vendus.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                                                    Aucun produit vendu
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            produits_vendus.slice(0, 10).map((item, index) => (
+                                                <tr key={item.produit.id} className="group border-b border-border last:border-0 hover:bg-muted/30">
+                                                    <td className="px-4 py-3 font-medium text-muted-foreground">#{index + 1}</td>
+                                                    <td className="px-4 py-3 font-medium text-foreground">{item.produit.nom}</td>
+                                                    <td className="px-4 py-3 text-right">{item.quantite}</td>
+                                                    <td className="px-4 py-3 text-right font-semibold text-primary">
+                                                        {item.total_fc.toLocaleString('fr-CD')} FC
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right text-muted-foreground">
+                                                        ${item.total_usd.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </AppLayout>

@@ -20,7 +20,7 @@ class RapportController extends Controller
         if ($restaurant && ! $restaurant->canAccessFeature('rapports')) {
             return redirect()
                 ->route('dashboard')
-                ->with('error', 'L\'accès aux rapports n\'est pas disponible avec votre plan d\'abonnement actuel.');
+                ->with('error', 'L\'accès aux rapports n\'est pas disponible avec votre plan d\'abonnement actuel. Veuillez upgrader votre abonnement pour accéder à cette fonctionnalité.');
         }
 
         $periode = $request->get('periode', 'jour');

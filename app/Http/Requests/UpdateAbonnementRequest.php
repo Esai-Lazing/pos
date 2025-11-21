@@ -22,7 +22,7 @@ class UpdateAbonnementRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'plan' => ['sometimes', 'string', 'in:basique,premium,enterprise'],
+            'plan' => ['sometimes', 'string', 'in:simple,medium,premium'],
             'montant_mensuel' => ['sometimes', 'numeric', 'min:0'],
             'date_debut' => ['sometimes', 'date'],
             'date_fin' => ['nullable', 'date', 'after:date_debut'],

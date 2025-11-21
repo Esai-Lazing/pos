@@ -124,6 +124,31 @@ export const FastFoodIllustration = () => (
     </svg>
 );
 
+export const RestaurantBarIllustration = () => (
+    <svg viewBox="0 0 200 200" className="w-full h-full">
+        <defs>
+            <linearGradient id="restaurantBarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#FF6B6B" />
+                <stop offset="50%" stopColor="#4ECDC4" />
+                <stop offset="100%" stopColor="#6EDDD6" />
+            </linearGradient>
+        </defs>
+        {/* Table (Restaurant side) */}
+        <rect x="30" y="120" width="70" height="8" rx="4" fill="#FF6B6B" />
+        {/* Bar counter (Bar side) */}
+        <rect x="100" y="100" width="70" height="30" rx="4" fill="#4ECDC4" />
+        {/* Plate on table */}
+        <circle cx="65" cy="110" r="20" fill="#FFF" stroke="#FF6B6B" strokeWidth="2" />
+        <circle cx="65" cy="110" r="10" fill="#FFD93D" />
+        {/* Glass on bar */}
+        <rect x="130" y="70" width="18" height="30" rx="2" fill="#FFF" opacity="0.9" />
+        <rect x="132" y="72" width="14" height="26" rx="1" fill="#4ECDC4" opacity="0.3" />
+        {/* Bottle on bar */}
+        <rect x="155" y="50" width="12" height="50" rx="2" fill="#2C3E50" />
+        <rect x="157" y="52" width="8" height="6" fill="#E74C3C" />
+    </svg>
+);
+
 export const AutreIllustration = () => (
     <svg viewBox="0 0 200 200" className="w-full h-full">
         <defs>

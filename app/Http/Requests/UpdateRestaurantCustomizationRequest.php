@@ -12,7 +12,7 @@ class UpdateRestaurantCustomizationRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
@@ -38,6 +38,17 @@ class UpdateRestaurantCustomizationRequest extends FormRequest
             'couleur_principale' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'reseaux_sociaux' => ['nullable', 'array'],
             'horaires' => ['nullable', 'array'],
+
+            // Nouveaux champs de personnalisation
+            'primary_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'secondary_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'font_family' => ['nullable', 'string', 'max:50'],
+            'font_size' => ['nullable', 'string', 'in:small,normal,large'],
+            'layout_type' => ['nullable', 'string', 'in:classic,modern,grid'],
+            'nav_style' => ['nullable', 'string', 'in:top,side'],
+            'show_banner' => ['nullable', 'boolean'],
+            'banner_image' => ['nullable', 'image', 'max:4096'], // Max 4MB
+            'custom_css' => ['nullable', 'array'],
         ];
     }
 }

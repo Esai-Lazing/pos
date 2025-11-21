@@ -28,7 +28,7 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                 resetOnSuccess={['password', 'password_confirmation']}
             >
                 {({ processing, errors }) => (
-                    <div className="grid gap-6">
+                        <div className="grid gap-6 w-full max-w-md mx-auto">
                         <div className="grid gap-2">
                             <Label htmlFor="email">Adresse email</Label>
                             <Input
